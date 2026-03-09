@@ -1,0 +1,27 @@
+classDiagram
+    class PedidoAjuda {
+        -int id
+        -String titulo
+        -String descricao
+        -String urgencia
+        -String status
+        -Date dataCriacao
+    }
+
+    class AtendimentoPedido {
+        -int id
+        -Date dataContato
+        -String tipoAjuda
+        -String observacao
+    }
+
+    class DoadorVoluntario {
+        -int id
+        -String nome
+        -String telefone
+        -String email
+    }
+
+    %% Relacionamentos
+    PedidoAjuda "1" <-- "0..*" AtendimentoPedido : recebe
+    DoadorVoluntario "1" <-- "0..*" AtendimentoPedido : realiza
