@@ -91,3 +91,66 @@ def test_get_pedido_inexistente_retorna_404_problem_json(api_client: TestClient)
     body = r.json()
     assert body["title"] == "Pedido não encontrado"
     assert body["status"] == 404
+
+
+def test_patch_status_transicao_valida(api_client: TestClient) -> None:
+    """PATCH /api/v1/pedidos/{id}/status com transição válida retorna 200."""
+    criado = api_client.post("/api/v1/pedidos", json=_VALID_PAYLOAD).json()
+
+    r = api_client.patch(f"/api/v1/pedidos/{criado['id']}/status", json={"status": "em_andamento"})
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "em_andamento"
+
+
+def test_patch_status_idempotente(api_client: TestClient) -> None:
+    """PATCH com o mesmo status atual retorna 200 sem erro."""
+    criado = api_client.post("/api/v1/pedidos", json=_VALID_PAYLOAD).json()
+
+    r = api_client.patch(f"/api/v1/pedidos/{criado['id']}/status", json={"status": "aberto"})
+
+    assert r.status_code == 200
+    assert r.json()["status"] == "aberto"
+
+
+def test_patch_status_transicao_invalida_retorna_409(api_client: TestClient) -> None:
+    """Transição em_andamento -> aberto retorna 409 ProblemDetail."""
+    criado = api_client.post("/api/v1/pedidos", json=_VALID_PAYLOAD).json()
+    api_client.patch(f"/api/v1/pedidos/{criado['id']}/status", json={"status": "em_andamento"})
+
+    r = api_client.patch(f"/api/v1/pedidos/{criado['id']}/status", json={"status": "aberto"})
+
+    assert r.status_code == 409
+    assert r.headers["content-type"] == "application/problem+json"
+    body = r.json()
+    assert body["title"] == "Transição de status inválida"
+
+
+def test_patch_status_concluido_e_terminal(api_client: TestClient) -> None:
+    """Pedido concluído não aceita mudança para outro status."""
+    criado = api_client.post("/api/v1/pedidos", json=_VALID_PAYLOAD).json()
+    api_client.patch(f"/api/v1/pedidos/{criado['id']}/status", json={"status": "concluido"})
+
+    r = api_client.patch(f"/api/v1/pedidos/{criado['id']}/status", json={"status": "em_andamento"})
+
+    assert r.status_code == 409
+
+
+def test_patch_status_pedido_inexistente_retorna_404(api_client: TestClient) -> None:
+    """PATCH em pedido inexistente retorna 404 ProblemDetail."""
+    r = api_client.patch("/api/v1/pedidos/9999/status", json={"status": "em_andamento"})
+
+    assert r.status_code == 404
+    body = r.json()
+    assert body["title"] == "Pedido não encontrado"
+
+
+def test_patch_status_payload_invalido_retorna_422(api_client: TestClient) -> None:
+    """PATCH com status fora do enum retorna 422 ProblemDetail."""
+    criado = api_client.post("/api/v1/pedidos", json=_VALID_PAYLOAD).json()
+
+    r = api_client.patch(f"/api/v1/pedidos/{criado['id']}/status", json={"status": "cancelado"})
+
+    assert r.status_code == 422
+    assert r.json()["title"] == "Erro de validação"

@@ -8,7 +8,13 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.enums import StatusPedidoEnum, UrgenciaEnum
 from app.repositories.pedido_repository import PedidoRepository
-from app.schemas import PageInfo, PedidoCreate, PedidoPage, PedidoRead
+from app.schemas import (
+    PageInfo,
+    PedidoCreate,
+    PedidoPage,
+    PedidoRead,
+    PedidoStatusUpdate,
+)
 from app.services.pedido_service import PedidoService
 
 router = APIRouter(prefix="/pedidos", tags=["pedidos"])
@@ -120,4 +126,32 @@ def detalhar_pedido(
         PedidoNotFoundError: se o pedido não existir (vira 404 via handler).
     """
     pedido = service.get_by_id(pedido_id)
+    return PedidoRead.model_validate(pedido)
+
+
+@router.patch(
+    "/{pedido_id}/status",
+    response_model=PedidoRead,
+    summary="Atualiza o status de um pedido",
+)
+def atualizar_status_pedido(
+    pedido_id: int,
+    payload: PedidoStatusUpdate,
+    service: PedidoService = Depends(_service),
+) -> PedidoRead:
+    """PATCH /api/v1/pedidos/{id}/status — atualiza status (RF06, RF07).
+
+    Args:
+        pedido_id: identificador.
+        payload: novo status.
+        service: serviço injetado.
+
+    Returns:
+        Pedido atualizado.
+
+    Raises:
+        PedidoNotFoundError: se o pedido não existir (vira 404).
+        InvalidStatusTransitionError: transição inválida (vira 409).
+    """
+    pedido = service.change_status(pedido_id, payload)
     return PedidoRead.model_validate(pedido)
