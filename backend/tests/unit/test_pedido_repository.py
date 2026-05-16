@@ -81,6 +81,17 @@ def test_list_filtra_por_urgencia(db_session: Session) -> None:
     assert [p.id for p in altas] == [alta.id]
 
 
+def test_list_filtra_por_categoria(db_session: Session) -> None:
+    """`list(categoria=...)` filtra por categoria (igualdade exata)."""
+    repo = PedidoRepository(db_session)
+    resgate = repo.create(_build_payload(titulo="Resgate", categoria="resgate"))
+    repo.create(_build_payload(titulo="Transporte", categoria="transporte"))
+
+    apenas_resgate = repo.list(categoria="resgate")
+
+    assert [p.id for p in apenas_resgate] == [resgate.id]
+
+
 def test_update_aplica_apenas_campos_informados(db_session: Session) -> None:
     """`update` modifica apenas os campos presentes no payload."""
     repo = PedidoRepository(db_session)
