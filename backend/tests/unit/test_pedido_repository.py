@@ -123,3 +123,60 @@ def test_update_status_retorna_none_para_id_inexistente(db_session: Session) -> 
     assert (
         repo.update_status(9999, PedidoStatusUpdate(status=StatusPedidoEnum.EM_ANDAMENTO)) is None
     )
+
+
+def test_list_aceita_filtro_q_busca_textual(db_session: Session) -> None:
+    """`list(q=...)` filtra por substring case-insensitive em titulo/descricao."""
+    repo = PedidoRepository(db_session)
+    repo.create(_build_payload(titulo="Cãozinho ferido", descricao="encontrado na rua"))
+    repo.create(_build_payload(titulo="Gata grávida", descricao="precisa de abrigo"))
+    repo.create(_build_payload(titulo="Doação de ração", descricao="estoque baixo"))
+
+    resultado_titulo = repo.list(q="cãozinho")
+    resultado_desc = repo.list(q="abrigo")
+    resultado_vazio = repo.list(q="cavalo")
+
+    assert {p.titulo for p in resultado_titulo} == {"Cãozinho ferido"}
+    assert {p.titulo for p in resultado_desc} == {"Gata grávida"}
+    assert resultado_vazio == []
+
+
+def test_list_paginated_retorna_pagina_correta(db_session: Session) -> None:
+    """`list_paginated` aplica LIMIT/OFFSET e retorna items + total."""
+    repo = PedidoRepository(db_session)
+    criados = [repo.create(_build_payload(titulo=f"Pedido {i}")) for i in range(5)]
+    # Ordem decrescente por data_criacao (com id desc como secundário)
+    esperado_ordem = list(reversed(criados))
+
+    pagina1 = repo.list_paginated(page=1, page_size=2)
+    pagina2 = repo.list_paginated(page=2, page_size=2)
+    pagina3 = repo.list_paginated(page=3, page_size=2)
+
+    assert pagina1.total == 5
+    assert [p.id for p in pagina1.items] == [esperado_ordem[0].id, esperado_ordem[1].id]
+    assert [p.id for p in pagina2.items] == [esperado_ordem[2].id, esperado_ordem[3].id]
+    assert [p.id for p in pagina3.items] == [esperado_ordem[4].id]
+
+
+def test_list_paginated_aplica_filtros(db_session: Session) -> None:
+    """`list_paginated` respeita filtros (status, urgencia, categoria, q)."""
+    repo = PedidoRepository(db_session)
+    repo.create(_build_payload(titulo="Alta urgência", urgencia=UrgenciaEnum.ALTA))
+    repo.create(_build_payload(titulo="Baixa urgência", urgencia=UrgenciaEnum.BAIXA))
+
+    resultado = repo.list_paginated(page=1, page_size=10, urgencia=UrgenciaEnum.ALTA)
+
+    assert resultado.total == 1
+    assert {p.titulo for p in resultado.items} == {"Alta urgência"}
+
+
+def test_count_respeita_filtros(db_session: Session) -> None:
+    """`count` retorna total absoluto ou filtrado."""
+    repo = PedidoRepository(db_session)
+    repo.create(_build_payload(urgencia=UrgenciaEnum.ALTA))
+    repo.create(_build_payload(urgencia=UrgenciaEnum.ALTA))
+    repo.create(_build_payload(urgencia=UrgenciaEnum.BAIXA))
+
+    assert repo.count() == 3
+    assert repo.count(urgencia=UrgenciaEnum.ALTA) == 2
+    assert repo.count(urgencia=UrgenciaEnum.MEDIA) == 0
