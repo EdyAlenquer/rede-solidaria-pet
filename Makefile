@@ -8,6 +8,7 @@ help:
 	@echo "  dev-frontend      - sobe Vite em modo dev"
 	@echo "  test-backend      - executa pytest"
 	@echo "  test-frontend     - executa vitest"
+	@echo "  dev               - sobe backend e frontend simultaneamente"
 	@echo "  lint              - executa lint em backend e frontend"
 
 install-backend:
@@ -34,5 +35,6 @@ lint-backend:
 lint-frontend:
 	cd frontend && npm run lint
 
+dev: dev-backend dev-frontend
 lint: lint-backend lint-frontend
 test: test-backend test-frontend
