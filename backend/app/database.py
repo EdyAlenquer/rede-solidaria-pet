@@ -12,6 +12,20 @@ class Base(DeclarativeBase):
     """Base declarativa compartilhada por todos os modelos ORM."""
 
 
+def _database_url_for_engine(database_url: str) -> str:
+    """Normaliza a URL de banco para o driver instalado.
+
+    Args:
+        database_url: URL SQLAlchemy recebida por configuração.
+
+    Returns:
+        URL compatível com o driver instalado para uso no `create_engine`.
+    """
+    if database_url.startswith("postgresql://"):
+        return database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return database_url
+
+
 def _create_engine_from_settings():
     """Cria o engine usando a `database_url` corrente das Settings.
 
@@ -19,10 +33,9 @@ def _create_engine_from_settings():
         Engine SQLAlchemy configurado.
     """
     settings = get_settings()
-    connect_args = (
-        {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-    )
-    return create_engine(settings.database_url, connect_args=connect_args, future=True)
+    database_url = _database_url_for_engine(settings.database_url)
+    connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
+    return create_engine(database_url, connect_args=connect_args, future=True)
 
 
 engine = _create_engine_from_settings()
