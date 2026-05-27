@@ -29,4 +29,5 @@
 | Deploy versionável         | Revisão de arquivos                     | `backend/Dockerfile`, `compose.yml`, `docs/deploy.md` e `docs/trabalho-final.md` versionados |
 | Docker backend             | `docker build -t rede-solidaria-pet-backend:test backend` | Imagem construída com sucesso |
 | Manifests de deploy        | `uv run --extra dev pytest tests/integration/test_deploy_manifests.py -q` | `render.yaml` e `frontend/vercel.json` validados |
-| Smoke produção             | `node scripts/smoke-production.mjs` com `FRONTEND_PUBLIC_URL` e `BACKEND_PUBLIC_URL` | Automatizado; execução depende das URLs públicas provisionadas |
+| Smoke produção             | `FRONTEND_PUBLIC_URL=https://frontend-edyalenquers-projects.vercel.app BACKEND_PUBLIC_URL=https://rede-solidaria-pet-api.onrender.com node scripts/smoke-production.mjs` | `Smoke OK` em 27/05/2026 |
+| CORS produção              | `curl -i -X OPTIONS https://rede-solidaria-pet-api.onrender.com/api/v1/pedidos -H 'Origin: https://frontend-edyalenquers-projects.vercel.app' -H 'Access-Control-Request-Method: POST'` | HTTP 200 com `access-control-allow-origin` correto |

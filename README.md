@@ -33,7 +33,7 @@ O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md).
 | 5    | Frontend — Fundação                        | ✅ Concluída  |
 | 6    | Frontend — Telas Principais                | ✅ Concluída  |
 | 7    | Qualidade, Acessibilidade e Testes         | ✅ Concluída  |
-| 8    | Deploy, Auditoria e Entrega                | ⚠️ Preparada  |
+| 8    | Deploy, Auditoria e Entrega                | ✅ Concluída  |
 
 ### O que já está pronto
 
@@ -58,11 +58,12 @@ O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md).
 **Infraestrutura**
 - Workflows de CI no GitHub Actions para backend e frontend.
 - `Makefile` com atalhos de desenvolvimento.
+- Backend publicado em https://rede-solidaria-pet-api.onrender.com.
+- Frontend publicado em https://frontend-edyalenquers-projects.vercel.app.
 
 ### O que ainda falta
 
-- Deploy em ambiente público e fechamento do relatório acadêmico (Fase 8).
-- Provisionar URLs públicas HTTPS nas plataformas definidas em `docs/deploy.md`.
+- Nenhuma fase do PRD permanece pendente.
 
 ---
 

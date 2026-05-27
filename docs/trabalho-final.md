@@ -36,5 +36,5 @@ A Rede Solidária Pet é uma aplicação web para centralizar pedidos de ajuda a
 
 ## Limitações
 
-- A URL pública com HTTPS depende do provisionamento efetivo nas plataformas de deploy.
+- URLs públicas com HTTPS validadas em Render e Vercel em 27/05/2026.
 - O teste em Edge é representado pelo motor Chromium no CI; validação manual no Microsoft Edge deve ser feita no fechamento operacional do deploy.

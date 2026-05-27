@@ -8,6 +8,13 @@
 | Banco | Render PostgreSQL | PostgreSQL gerenciado no mesmo provedor do backend. |
 | Frontend | Vercel | Deploy direto de Vite, HTTPS automático e configuração simples de variável `VITE_API_BASE_URL`. |
 
+## URLs publicadas
+
+| Camada | URL |
+| ------ | --- |
+| Backend | `https://rede-solidaria-pet-api.onrender.com` |
+| Frontend | `https://frontend-edyalenquers-projects.vercel.app` |
+
 ## Variáveis de ambiente
 
 ### Backend
@@ -17,7 +24,7 @@
 | `APP_ENV` | `production` | Ambiente de execução. |
 | `LOG_LEVEL` | `INFO` | Nível de log. |
 | `DATABASE_URL` | `postgresql+psycopg://user:pass@host:5432/db` | URL SQLAlchemy do PostgreSQL. |
-| `CORS_ORIGINS` | `https://rede-solidaria-pet.vercel.app` | Origens autorizadas a consumir a API. |
+| `CORS_ORIGINS` | `https://frontend-edyalenquers-projects.vercel.app` | Origens autorizadas a consumir a API. |
 
 ### Frontend
 
@@ -40,7 +47,7 @@
 Depois de publicar backend e frontend, rode:
 
 ```bash
-FRONTEND_PUBLIC_URL=https://rede-solidaria-pet.vercel.app \
+FRONTEND_PUBLIC_URL=https://frontend-edyalenquers-projects.vercel.app \
 BACKEND_PUBLIC_URL=https://rede-solidaria-pet-api.onrender.com \
 node scripts/smoke-production.mjs
 ```
