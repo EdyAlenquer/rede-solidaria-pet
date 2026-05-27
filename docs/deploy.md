@@ -50,7 +50,7 @@ O mesmo gate está disponível manualmente no GitHub Actions em `Production Smok
 ## Manifests versionados
 
 - `render.yaml`: declara o Web Service Docker do backend e o PostgreSQL gerenciado.
-- `vercel.json`: declara build Vite, diretório de saída e rewrite SPA do frontend.
+- `frontend/vercel.json`: declara build Vite, diretório de saída e rewrite SPA do frontend.
 
 ## Desenvolvimento com containers
 

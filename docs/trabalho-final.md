@@ -13,7 +13,7 @@ A Rede Solidária Pet é uma aplicação web para centralizar pedidos de ajuda a
 - Proteção de contato até clique explícito.
 - Testes unitários, integração, E2E, axe-core e Lighthouse mobile.
 - Configuração de deploy por Docker, PostgreSQL e variáveis de ambiente.
-- Manifests `render.yaml` e `vercel.json` para provisionamento em Render/Vercel.
+- Manifests `render.yaml` e `frontend/vercel.json` para provisionamento em Render/Vercel.
 
 ## Requisitos atendidos
 

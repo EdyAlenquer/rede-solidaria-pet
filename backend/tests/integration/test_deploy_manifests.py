@@ -27,8 +27,13 @@ def test_render_yaml_define_backend_e_postgres() -> None:
 
 
 def test_vercel_json_define_build_vite_e_rewrites_spa() -> None:
-    """`vercel.json` configura build Vite e fallback SPA."""
-    manifest = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
+    """`frontend/vercel.json` configura build Vite e fallback SPA."""
+    manifest_path = ROOT / "frontend/vercel.json"
+
+    assert manifest_path.exists()
+    assert not (ROOT / "vercel.json").exists()
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     assert manifest["buildCommand"] == "npm run build"
     assert manifest["outputDirectory"] == "dist"

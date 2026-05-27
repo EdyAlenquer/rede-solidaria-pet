@@ -28,5 +28,5 @@
 | Cobertura backend          | `uv run pytest --cov=app --cov-report=term-missing` | 96 testes passando, cobertura total 99%                       |
 | Deploy versionável         | Revisão de arquivos                     | `backend/Dockerfile`, `compose.yml`, `docs/deploy.md` e `docs/trabalho-final.md` versionados |
 | Docker backend             | `docker build -t rede-solidaria-pet-backend:test backend` | Imagem construída com sucesso |
-| Manifests de deploy        | `uv run --extra dev pytest tests/integration/test_deploy_manifests.py -q` | `render.yaml` e `vercel.json` validados |
+| Manifests de deploy        | `uv run --extra dev pytest tests/integration/test_deploy_manifests.py -q` | `render.yaml` e `frontend/vercel.json` validados |
 | Smoke produção             | `node scripts/smoke-production.mjs` com `FRONTEND_PUBLIC_URL` e `BACKEND_PUBLIC_URL` | Automatizado; execução depende das URLs públicas provisionadas |

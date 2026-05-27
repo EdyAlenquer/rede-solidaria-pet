@@ -6,4 +6,4 @@
 | Requisitos não funcionais |    1.0 | 08/03/2026 | Restrições e qualidades do sistema       | Aprovado |
 | API Backend               |    1.0 | 27/05/2026 | FastAPI com pedidos, doadores e atendimentos | Validado |
 | Frontend SPA              |    1.0 | 27/05/2026 | React/Vite com fluxo principal e QA automatizada | Validado |
-| Deploy                    |    0.2 | 27/05/2026 | Dockerfile, compose, render.yaml, vercel.json e alvo Render/Vercel definidos | Preparado |
+| Deploy                    |    0.2 | 27/05/2026 | Dockerfile, compose, render.yaml, frontend/vercel.json e alvo Render/Vercel definidos | Preparado |
