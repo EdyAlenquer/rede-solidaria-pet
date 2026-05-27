@@ -30,3 +30,13 @@ class AtendimentoRead(AtendimentoBase):
     pedido_id: int
     doador_id: int
     data_contato: datetime
+
+
+class AtendimentoPublicRead(AtendimentoBase):
+    """Schema público de atendimento sem dados identificáveis do doador."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    pedido_id: int
+    data_contato: datetime

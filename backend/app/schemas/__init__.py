@@ -1,6 +1,6 @@
 """Re-exporta os schemas Pydantic do domínio."""
 
-from app.schemas.atendimento import AtendimentoCreate, AtendimentoRead
+from app.schemas.atendimento import AtendimentoCreate, AtendimentoPublicRead, AtendimentoRead
 from app.schemas.doador import DoadorCreate, DoadorRead, DoadorUpdate
 from app.schemas.pagination import PageInfo, PedidoPage
 from app.schemas.pedido import (
@@ -12,6 +12,7 @@ from app.schemas.pedido import (
 
 __all__ = [
     "AtendimentoCreate",
+    "AtendimentoPublicRead",
     "AtendimentoRead",
     "DoadorCreate",
     "DoadorRead",
