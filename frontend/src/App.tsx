@@ -1,16 +1,12 @@
+import { useRoutes } from 'react-router-dom'
+
+import { routes } from './router'
+
 /**
  * Componente raiz da aplicação Rede Solidária Pet.
  *
- * Renderiza o layout mínimo da Fase 1 (Estrutura) — um cabeçalho
- * com o nome do produto e uma mensagem de status.
- *
- * @returns Árvore React com o conteúdo principal.
+ * @returns Árvore React com as rotas da aplicação.
  */
 export function App() {
-  return (
-    <main>
-      <h1>Rede Solidária Pet</h1>
-      <p>Em construção — Fase 1 (Estrutura).</p>
-    </main>
-  )
+  return useRoutes(routes)
 }
