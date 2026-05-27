@@ -29,6 +29,7 @@ const pedidoPage: PedidoPage = {
 
 describe('PedidoListaPage', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
     vi.mocked(listarPedidos).mockResolvedValue(pedidoPage)
   })
 
@@ -72,5 +73,41 @@ describe('PedidoListaPage', () => {
       q: 'ração',
       urgencia: 'alta',
     })))
+  })
+
+  it('carrega categoria, status e página vindos da URL', async () => {
+    renderPage('/pedidos?categoria=transporte&status=em_andamento&page=2')
+
+    await waitFor(() =>
+      expect(listarPedidos).toHaveBeenCalledWith({
+        page: 2,
+        page_size: 20,
+        categoria: 'transporte',
+        status: 'em_andamento',
+      }),
+    )
+    expect(await screen.findByLabelText('Categoria')).toHaveValue('transporte')
+    expect(screen.getByLabelText('Status')).toHaveValue('em_andamento')
+  })
+
+  it('reflete categoria, status e paginação na URL antes de recarregar', async () => {
+    const user = userEvent.setup()
+    vi.mocked(listarPedidos).mockResolvedValue({
+      ...pedidoPage,
+      page_info: { page: 1, page_size: 20, total: 42, total_pages: 3 },
+    })
+    renderPage('/pedidos')
+
+    await user.selectOptions(await screen.findByLabelText('Categoria'), 'ração')
+    await user.selectOptions(screen.getByLabelText('Status'), 'em_andamento')
+    await user.click(screen.getByRole('button', { name: /próxima página/i }))
+
+    await waitFor(() =>
+      expect(listarPedidos).toHaveBeenLastCalledWith(expect.objectContaining({
+        page: 2,
+        categoria: 'ração',
+        status: 'em_andamento',
+      })),
+    )
   })
 })

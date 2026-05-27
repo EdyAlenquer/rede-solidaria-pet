@@ -331,10 +331,21 @@ a {
 }
 
 .rsp-filter-row,
-.rsp-meta-row {
+.rsp-meta-row,
+.rsp-filter-selects,
+.rsp-pagination {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.rsp-filter-selects {
+  gap: 12px;
+}
+
+.rsp-filter-selects .rsp-field {
+  min-width: 180px;
+  flex: 1;
 }
 
 .rsp-chip {
@@ -426,6 +437,14 @@ a {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.rsp-pagination {
+  align-items: center;
+  justify-content: space-between;
+  max-width: 760px;
+  color: var(--rsp-ink-muted);
+  font-weight: 750;
 }
 
 .rsp-skeleton,

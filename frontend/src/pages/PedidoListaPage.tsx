@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
-import { Badge } from '../components/ui'
+import { Badge, Button, Select } from '../components/ui'
 import { listarPedidos } from '../services/api/pedidos'
-import type { Pedido, PedidoPage, Urgencia } from '../types/api'
+import type { Pedido, PedidoPage, StatusPedido, Urgencia } from '../types/api'
 
 const PAGE_SIZE = 20
 
@@ -26,16 +26,21 @@ export function PedidoListaPage() {
 
   const q = searchParams.get('q') ?? ''
   const urgencia = searchParams.get('urgencia') as Urgencia | null
+  const categoria = searchParams.get('categoria') ?? ''
+  const status = searchParams.get('status') as StatusPedido | null
+  const page = Math.max(Number(searchParams.get('page') ?? '1') || 1, 1)
 
   useEffect(() => {
     let active = true
     setLoading(true)
     setError(null)
     listarPedidos({
-      page: 1,
+      page,
       page_size: PAGE_SIZE,
       ...(q ? { q } : {}),
       ...(urgencia ? { urgencia } : {}),
+      ...(categoria ? { categoria } : {}),
+      ...(status ? { status } : {}),
     })
       .then((page) => {
         if (active) {
@@ -53,21 +58,44 @@ export function PedidoListaPage() {
     return () => {
       active = false
     }
-  }, [q, urgencia])
+  }, [categoria, page, q, status, urgencia])
 
   const total = pedidoPage?.page_info.total ?? 0
   const pedidos = useMemo(() => pedidoPage?.items ?? [], [pedidoPage])
 
-  function updateFilter(next: { q?: string; urgencia?: Urgencia | null }) {
+  function updateFilter(next: {
+    categoria?: string | null
+    page?: number
+    q?: string
+    status?: StatusPedido | null
+    urgencia?: Urgencia | null
+  }) {
     const params = new URLSearchParams(searchParams)
     if ('q' in next) {
       const value = next.q?.trim() ?? ''
       if (value) params.set('q', value)
       else params.delete('q')
+      params.delete('page')
+    }
+    if ('categoria' in next) {
+      const value = next.categoria?.trim() ?? ''
+      if (value) params.set('categoria', value)
+      else params.delete('categoria')
+      params.delete('page')
     }
     if ('urgencia' in next) {
       if (next.urgencia) params.set('urgencia', next.urgencia)
       else params.delete('urgencia')
+      params.delete('page')
+    }
+    if ('status' in next) {
+      if (next.status) params.set('status', next.status)
+      else params.delete('status')
+      params.delete('page')
+    }
+    if ('page' in next) {
+      if (next.page && next.page > 1) params.set('page', String(next.page))
+      else params.delete('page')
     }
     setSearchParams(params, { replace: true })
   }
@@ -90,11 +118,39 @@ export function PedidoListaPage() {
           <span aria-hidden="true">⌕</span>
           <input
             aria-label="Buscar pedidos"
-            defaultValue={q}
+            value={q}
             onChange={(event) => updateFilter({ q: event.target.value })}
             placeholder="Buscar por bairro, categoria, palavra-chave..."
           />
         </label>
+        <div className="rsp-filter-selects">
+          <Select
+            id="categoria-filtro"
+            label="Categoria"
+            value={categoria}
+            onChange={(event) => updateFilter({ categoria: event.target.value })}
+            options={[
+              { label: 'Todas as categorias', value: '' },
+              { label: 'Ração', value: 'ração' },
+              { label: 'Transporte', value: 'transporte' },
+              { label: 'Veterinário', value: 'veterinário' },
+              { label: 'Lar temporário', value: 'lar temporário' },
+              { label: 'Resgate', value: 'resgate' },
+            ]}
+          />
+          <Select
+            id="status-filtro"
+            label="Status"
+            value={status ?? ''}
+            onChange={(event) => updateFilter({ status: event.target.value as StatusPedido | null })}
+            options={[
+              { label: 'Todos os status', value: '' },
+              { label: 'Aberto', value: 'aberto' },
+              { label: 'Em andamento', value: 'em_andamento' },
+              { label: 'Concluído', value: 'concluido' },
+            ]}
+          />
+        </div>
         <div className="rsp-filter-row" aria-label="Filtrar por urgência">
           <button
             type="button"
@@ -137,11 +193,32 @@ export function PedidoListaPage() {
         <div className="rsp-empty">Nenhum pedido encontrado. Tente outro termo ou filtro.</div>
       )}
       {!loading && !error && pedidos.length > 0 && (
-        <div className="rsp-feed__grid">
-          {pedidos.map((pedido) => (
-            <PedidoCard key={pedido.id} pedido={pedido} />
-          ))}
-        </div>
+        <>
+          <div className="rsp-feed__grid">
+            {pedidos.map((pedido) => (
+              <PedidoCard key={pedido.id} pedido={pedido} />
+            ))}
+          </div>
+          <div className="rsp-pagination" aria-label="Paginação">
+            <Button
+              variant="secondary"
+              disabled={page <= 1}
+              onClick={() => updateFilter({ page: page - 1 })}
+            >
+              Página anterior
+            </Button>
+            <span>
+              Página {page} de {pedidoPage?.page_info.total_pages ?? 1}
+            </span>
+            <Button
+              variant="secondary"
+              disabled={page >= (pedidoPage?.page_info.total_pages ?? 1)}
+              onClick={() => updateFilter({ page: page + 1 })}
+            >
+              Próxima página
+            </Button>
+          </div>
+        </>
       )}
     </section>
   )
