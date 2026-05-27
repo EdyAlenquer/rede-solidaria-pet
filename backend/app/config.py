@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     app_env: str = Field(default="development")
     log_level: str = Field(default="INFO")
     database_url: str = Field(default="sqlite:///./rede_solidaria_pet.db")
+    cors_origins: str = Field(default="")
+
+    def allowed_cors_origins(self) -> list[str]:
+        """Retorna as origens CORS permitidas.
+
+        Returns:
+            Lista de origens sem espaços e sem valores vazios.
+        """
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
 
 @lru_cache
