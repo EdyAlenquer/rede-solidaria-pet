@@ -18,9 +18,11 @@ def test_render_yaml_define_backend_e_postgres() -> None:
     database = manifest["databases"][0]
 
     assert service["type"] == "web"
+    assert service["plan"] == "free"
     assert service["runtime"] == "docker"
     assert service["dockerfilePath"] == "./backend/Dockerfile"
     assert service["healthCheckPath"] == "/health"
+    assert database["plan"] == "free"
     assert database["databaseName"] == "rede_solidaria_pet"
     assert any(env["key"] == "DATABASE_URL" for env in service["envVars"])
     assert any(env["key"] == "CORS_ORIGINS" for env in service["envVars"])

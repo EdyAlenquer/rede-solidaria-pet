@@ -1,6 +1,7 @@
 services:
   - type: web
     name: rede-solidaria-pet-api
+    plan: free
     runtime: docker
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
@@ -20,5 +21,6 @@ services:
 
 databases:
   - name: rede-solidaria-pet-db
+    plan: free
     databaseName: rede_solidaria_pet
     user: rede_solidaria_pet
