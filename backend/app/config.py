@@ -5,6 +5,8 @@ from functools import lru_cache
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+PRODUCTION_CORS_ORIGINS = ("https://frontend-edyalenquers-projects.vercel.app",)
+
 
 class Settings(BaseSettings):
     """Configurações tipadas da aplicação.
@@ -33,7 +35,10 @@ class Settings(BaseSettings):
         Returns:
             Lista de origens sem espaços e sem valores vazios.
         """
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        origins = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        if self.app_env == "production":
+            origins.extend(origin for origin in PRODUCTION_CORS_ORIGINS if origin not in origins)
+        return origins
 
 
 @lru_cache
