@@ -73,9 +73,7 @@ def test_create_mantem_pedido_em_andamento(db_session: Session) -> None:
 
 def test_create_lanca_pedido_not_found_para_pedido_inexistente(db_session: Session) -> None:
     """Criar atendimento para pedido inexistente levanta `PedidoNotFoundError`."""
-    doador = DoadorRepository(db_session).create(
-        DoadorCreate(nome="Maria", telefone="11988887777")
-    )
+    doador = DoadorRepository(db_session).create(DoadorCreate(nome="Maria", telefone="11988887777"))
 
     with pytest.raises(PedidoNotFoundError):
         _service(db_session).create(
