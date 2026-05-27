@@ -36,5 +36,14 @@ jobs:
       - name: Test
         run: npm run test
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: E2E and accessibility
+        run: npm run test:e2e
+
       - name: Build
         run: npm run build
+
+      - name: Lighthouse mobile
+        run: npm run qa:lighthouse
