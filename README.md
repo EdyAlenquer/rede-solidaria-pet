@@ -32,8 +32,8 @@ O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md).
 | 4    | API REST — Atendimentos e Doadores         | ✅ Concluída  |
 | 5    | Frontend — Fundação                        | ✅ Concluída  |
 | 6    | Frontend — Telas Principais                | ✅ Concluída  |
-| 7    | Qualidade, Acessibilidade e Testes         | ⏳ Pendente   |
-| 8    | Deploy, Auditoria e Entrega                | ⏳ Pendente   |
+| 7    | Qualidade, Acessibilidade e Testes         | ✅ Concluída  |
+| 8    | Deploy, Auditoria e Entrega                | ⚠️ Preparada  |
 
 ### O que já está pronto
 
@@ -52,6 +52,7 @@ O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md).
 - Telas reais de home, lista, criação e detalhe de pedidos.
 - Integração com a API para pedidos, doadores e atendimentos.
 - Estados de carregamento, erro, vazio e validação client-side em português.
+- Testes E2E, axe e Lighthouse mobile cobrindo o fluxo principal e rotas públicas.
 - Lint (ESLint) e formatação (Prettier) configurados.
 
 **Infraestrutura**
@@ -60,8 +61,8 @@ O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md).
 
 ### O que ainda falta
 
-- Acessibilidade, testes E2E, auditorias de performance (Fase 7).
 - Deploy em ambiente público e fechamento do relatório acadêmico (Fase 8).
+- Provisionar URLs públicas HTTPS nas plataformas definidas em `docs/deploy.md`.
 
 ---
 
@@ -165,6 +166,8 @@ rede-solidaria-pet/
 ## Documentação relacionada
 
 - [PRD.md](PRD.md) — visão completa do produto e roadmap em fases
+- [`docs/deploy.md`](docs/deploy.md) — alvo de deploy, variáveis e procedimento
+- [`docs/trabalho-final.md`](docs/trabalho-final.md) — síntese acadêmica da entrega
 - [`docs/requisitos/`](docs/requisitos/) — requisitos funcionais, não funcionais e baseline
 - [`docs/diagramas/`](docs/diagramas/) — diagrama de atividades e diagrama de classes
 - [`docs/auditoria-de-configuracao.md`](docs/auditoria-de-configuracao.md) — checklist de auditoria
