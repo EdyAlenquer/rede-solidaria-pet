@@ -21,6 +21,9 @@ def test_render_yaml_define_backend_e_postgres() -> None:
     assert service["plan"] == "free"
     assert service["runtime"] == "docker"
     assert service["dockerfilePath"] == "./backend/Dockerfile"
+    assert service["dockerCommand"].startswith("sh -c")
+    assert "alembic upgrade head" in service["dockerCommand"]
+    assert "uvicorn app.main:app" in service["dockerCommand"]
     assert service["healthCheckPath"] == "/health"
     assert database["plan"] == "free"
     assert database["databaseName"] == "rede_solidaria_pet"
