@@ -21,14 +21,21 @@ def test_render_yaml_define_backend_e_postgres() -> None:
     assert service["plan"] == "free"
     assert service["runtime"] == "docker"
     assert service["dockerfilePath"] == "./backend/Dockerfile"
-    assert service["dockerCommand"].startswith("sh -c")
-    assert "alembic upgrade head" in service["dockerCommand"]
-    assert "uvicorn app.main:app" in service["dockerCommand"]
+    assert "dockerCommand" not in service
     assert service["healthCheckPath"] == "/health"
     assert database["plan"] == "free"
     assert database["databaseName"] == "rede_solidaria_pet"
     assert any(env["key"] == "DATABASE_URL" for env in service["envVars"])
     assert any(env["key"] == "CORS_ORIGINS" for env in service["envVars"])
+
+
+def test_backend_dockerfile_roda_migracoes_antes_do_servidor() -> None:
+    """Dockerfile inicia aplicando migrações antes do Uvicorn."""
+    dockerfile = (ROOT / "backend/Dockerfile").read_text(encoding="utf-8")
+
+    assert 'CMD ["sh", "-c",' in dockerfile
+    assert "alembic upgrade head" in dockerfile
+    assert "uvicorn app.main:app" in dockerfile
 
 
 def test_vercel_json_define_build_vite_e_rewrites_spa() -> None:
