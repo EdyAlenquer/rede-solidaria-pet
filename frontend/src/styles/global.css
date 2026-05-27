@@ -293,6 +293,244 @@ a {
   border-top: 1px solid var(--rsp-border);
 }
 
+.rsp-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.rsp-feed__toolbar {
+  display: grid;
+  max-width: 760px;
+  gap: 18px;
+}
+
+.rsp-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 16px;
+  background: var(--rsp-surface);
+  border: 1px solid var(--rsp-border-strong);
+  border-radius: var(--rsp-r-lg);
+}
+
+.rsp-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--rsp-ink);
+}
+
+.rsp-filter-row,
+.rsp-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rsp-chip {
+  min-height: 36px;
+  padding: 7px 14px;
+  color: var(--rsp-ink-soft);
+  font-weight: 750;
+  background: var(--rsp-surface);
+  border: 1px solid var(--rsp-border);
+  border-radius: 999px;
+}
+
+.rsp-chip[aria-pressed="true"] {
+  color: #ffffff;
+  background: var(--rsp-primary-700);
+  border-color: var(--rsp-primary-700);
+}
+
+.rsp-feed__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.rsp-pedido-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  color: inherit;
+  text-decoration: none;
+  background: var(--rsp-surface);
+  border: 1px solid var(--rsp-border);
+  border-radius: var(--rsp-r-lg);
+  box-shadow: var(--rsp-shadow-1);
+}
+
+.rsp-pedido-card:hover {
+  border-color: var(--rsp-border-strong);
+}
+
+.rsp-pedido-card__head {
+  display: flex;
+  gap: 12px;
+}
+
+.rsp-pedido-thumb {
+  display: flex;
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: var(--rsp-ink-muted);
+  font-size: 11px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--rsp-surface-warm),
+    var(--rsp-surface-warm) 8px,
+    var(--rsp-bg) 8px,
+    var(--rsp-bg) 16px
+  );
+  border-radius: var(--rsp-r-md);
+}
+
+.rsp-pedido-card__body {
+  min-width: 0;
+}
+
+.rsp-pedido-card__title {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.22;
+}
+
+.rsp-pedido-card__meta,
+.rsp-pedido-card__desc,
+.rsp-help {
+  color: var(--rsp-ink-muted);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.rsp-pedido-card__meta,
+.rsp-pedido-card__desc {
+  margin: 5px 0 0;
+}
+
+.rsp-pedido-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rsp-skeleton,
+.rsp-empty {
+  padding: 24px;
+  color: var(--rsp-ink-muted);
+  background: var(--rsp-surface);
+  border: 1px dashed var(--rsp-border-strong);
+  border-radius: var(--rsp-r-lg);
+}
+
+.rsp-form {
+  display: grid;
+  gap: 16px;
+}
+
+.rsp-textarea {
+  min-height: 130px;
+  resize: vertical;
+}
+
+.rsp-alert {
+  padding: 12px 14px;
+  color: var(--rsp-danger-fg);
+  background: var(--rsp-danger-bg);
+  border-radius: var(--rsp-r-md);
+}
+
+.rsp-alert p {
+  margin: 0;
+}
+
+.rsp-detail__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 28px;
+}
+
+.rsp-detail__main,
+.rsp-detail__aside-card,
+.rsp-help-form,
+.rsp-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.rsp-detail__hero {
+  display: flex;
+  min-height: 220px;
+  align-items: center;
+  justify-content: center;
+  color: var(--rsp-ink-muted);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--rsp-surface-warm),
+    var(--rsp-surface-warm) 14px,
+    var(--rsp-bg) 14px,
+    var(--rsp-bg) 28px
+  );
+  border: 1px solid var(--rsp-border);
+  border-radius: var(--rsp-r-lg);
+}
+
+.rsp-detail-title {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.08;
+}
+
+.rsp-prose {
+  margin: 0;
+  color: var(--rsp-ink-soft);
+  line-height: 1.65;
+}
+
+.rsp-block-label {
+  margin: 0 0 8px;
+  color: var(--rsp-ink-soft);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rsp-textlink {
+  width: fit-content;
+  color: var(--rsp-primary-700);
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.rsp-btn--block {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.rsp-contato__value,
+.rsp-success-message {
+  font-weight: 800;
+}
+
+.rsp-success-message {
+  color: var(--rsp-success-fg);
+}
+
 @media (max-width: 720px) {
   .rsp-webheader {
     align-items: stretch;
@@ -316,5 +554,10 @@ a {
   .rsp-footer {
     flex-direction: column;
     padding: 20px 18px 32px;
+  }
+
+  .rsp-feed__grid,
+  .rsp-detail__layout {
+    grid-template-columns: 1fr;
   }
 }

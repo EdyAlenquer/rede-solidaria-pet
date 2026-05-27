@@ -1,8 +1,17 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 import { App } from './App'
+
+vi.mock('./services/api/pedidos', () => ({
+  listarPedidos: vi.fn(() => new Promise(() => undefined)),
+  obterPedido: vi.fn(() => new Promise(() => undefined)),
+}))
+
+vi.mock('./services/api/atendimentos', () => ({
+  listarAtendimentos: vi.fn(() => new Promise(() => undefined)),
+}))
 
 describe('App', () => {
   function renderAt(path: string) {
@@ -35,7 +44,7 @@ describe('App', () => {
   it('renderiza a rota de detalhe do pedido', () => {
     renderAt('/pedidos/123')
 
-    expect(screen.getByRole('heading', { name: /detalhe do pedido/i })).toBeInTheDocument()
+    expect(screen.getByText(/carregando pedido/i)).toBeInTheDocument()
   })
 
   it('renderiza o playground de componentes base', () => {
