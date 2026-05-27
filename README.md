@@ -29,7 +29,7 @@ O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md).
 | 1    | Estrutura do Projeto                       | ✅ Concluída  |
 | 2    | Modelagem e Persistência (Backend)         | ✅ Concluída  |
 | 3    | API REST — Pedidos                         | ✅ Concluída  |
-| 4    | API REST — Atendimentos e Doadores         | ⏳ Pendente   |
+| 4    | API REST — Atendimentos e Doadores         | ✅ Concluída  |
 | 5    | Frontend — Fundação                        | ⏳ Pendente   |
 | 6    | Frontend — Telas Principais                | ⏳ Pendente   |
 | 7    | Qualidade, Acessibilidade e Testes         | ⏳ Pendente   |
@@ -42,8 +42,9 @@ O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md).
 - Modelo de dados completo: `PedidoAjuda`, `DoadorVoluntario`, `AtendimentoPedido` (SQLAlchemy 2.0 + SQLite/PostgreSQL).
 - Migrações Alembic.
 - Endpoints REST de pedidos com paginação, filtros (status, urgência, categoria, busca textual) e regras de transição de status.
+- Endpoints REST de doadores e atendimentos, com transição automática do pedido para `em_andamento` no primeiro atendimento.
 - Tratamento de erros padronizado (RFC 7807 — `application/problem+json`).
-- 75 testes (unitários + integração) passando.
+- 93 testes (unitários + integração) passando.
 
 **Frontend (`frontend/`)**
 - Scaffold Vite + React + TypeScript com tela placeholder.
@@ -56,7 +57,6 @@ O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md).
 
 ### O que ainda falta
 
-- Endpoints REST de atendimentos e doadores (Fase 4).
 - Toda a interface de usuário e integração frontend ↔ backend (Fases 5 e 6).
 - Acessibilidade, testes E2E, auditorias de performance (Fase 7).
 - Deploy em ambiente público e fechamento do relatório acadêmico (Fase 8).
@@ -125,7 +125,7 @@ make lint            # roda lint back + front
 
 ---
 
-## Endpoints disponíveis (Fase 3)
+## Endpoints disponíveis (Fases 3 e 4)
 
 | Método | Rota                                  | Descrição                                       |
 | ------ | ------------------------------------- | ----------------------------------------------- |
@@ -134,6 +134,10 @@ make lint            # roda lint back + front
 | GET    | `/api/v1/pedidos`                     | Lista pedidos (filtros + paginação)             |
 | GET    | `/api/v1/pedidos/{id}`                | Detalha um pedido                               |
 | PATCH  | `/api/v1/pedidos/{id}/status`         | Atualiza o status (com regras de transição)     |
+| POST   | `/api/v1/doadores`                    | Cadastra doador/voluntário                      |
+| GET    | `/api/v1/doadores/{id}`               | Consulta doador (uso administrativo)            |
+| POST   | `/api/v1/pedidos/{id}/atendimentos`   | Registra atendimento                            |
+| GET    | `/api/v1/pedidos/{id}/atendimentos`   | Lista atendimentos de um pedido                 |
 
 ---
 
