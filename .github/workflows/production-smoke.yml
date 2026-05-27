@@ -1,0 +1,30 @@
+name: Production Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      frontend_url:
+        description: URL pública HTTPS do frontend
+        required: true
+        type: string
+      backend_url:
+        description: URL pública HTTPS do backend
+        required: true
+        type: string
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Smoke public URLs
+        env:
+          FRONTEND_PUBLIC_URL: ${{ inputs.frontend_url }}
+          BACKEND_PUBLIC_URL: ${{ inputs.backend_url }}
+        run: node scripts/smoke-production.mjs
