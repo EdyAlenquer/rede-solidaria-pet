@@ -42,6 +42,20 @@ class PedidoNotFoundError(DomainError):
     title = "Pedido não encontrado"
 
 
+class DoadorNotFoundError(DomainError):
+    """Erro quando um doador com o id informado não existe."""
+
+    status_code = 404
+    title = "Doador não encontrado"
+
+
+class PedidoNotAtendivelError(DomainError):
+    """Erro quando um pedido não pode receber novos atendimentos."""
+
+    status_code = 409
+    title = "Pedido não pode receber atendimento"
+
+
 class InvalidStatusTransitionError(DomainError):
     """Erro quando uma transição de status não é permitida pelas regras de negócio."""
 

@@ -18,12 +18,16 @@ class AtendimentoRepository:
         """
         self.session = session
 
-    def create(self, pedido_id: int, payload: AtendimentoCreate) -> AtendimentoPedido:
+    def create(
+        self, pedido_id: int, payload: AtendimentoCreate, *, commit: bool = True
+    ) -> AtendimentoPedido:
         """Persiste um novo atendimento vinculado ao pedido informado.
 
         Args:
             pedido_id: id do pedido sendo atendido.
             payload: dados do atendimento (inclui `doador_id`).
+            commit: se True, confirma a transação imediatamente; se False, apenas
+                executa flush para permitir composição transacional pelo service.
 
         Returns:
             Atendimento persistido com `id` e `data_contato`.
@@ -39,7 +43,10 @@ class AtendimentoRepository:
             observacao=payload.observacao,
         )
         self.session.add(atendimento)
-        self.session.commit()
+        if commit:
+            self.session.commit()
+        else:
+            self.session.flush()
         self.session.refresh(atendimento)
         return atendimento
 

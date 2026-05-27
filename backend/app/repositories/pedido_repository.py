@@ -190,12 +190,16 @@ class PedidoRepository:
         self.session.refresh(pedido)
         return pedido
 
-    def update_status(self, pedido_id: int, payload: PedidoStatusUpdate) -> PedidoAjuda | None:
+    def update_status(
+        self, pedido_id: int, payload: PedidoStatusUpdate, *, commit: bool = True
+    ) -> PedidoAjuda | None:
         """Atualiza somente o status de um pedido.
 
         Args:
             pedido_id: identificador.
             payload: novo status.
+            commit: se True, confirma a transação imediatamente; se False, apenas
+                executa flush para permitir composição transacional pelo service.
 
         Returns:
             Pedido atualizado ou None se não existir.
@@ -204,6 +208,9 @@ class PedidoRepository:
         if pedido is None:
             return None
         pedido.status = payload.status
-        self.session.commit()
+        if commit:
+            self.session.commit()
+        else:
+            self.session.flush()
         self.session.refresh(pedido)
         return pedido
