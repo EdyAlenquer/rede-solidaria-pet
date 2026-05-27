@@ -26,7 +26,10 @@ def test_render_yaml_define_backend_e_postgres() -> None:
     assert database["plan"] == "free"
     assert database["databaseName"] == "rede_solidaria_pet"
     assert any(env["key"] == "DATABASE_URL" for env in service["envVars"])
-    assert any(env["key"] == "CORS_ORIGINS" for env in service["envVars"])
+    assert {
+        "key": "CORS_ORIGINS",
+        "value": "https://frontend-edyalenquers-projects.vercel.app",
+    } in service["envVars"]
 
 
 def test_backend_dockerfile_roda_migracoes_antes_do_servidor() -> None:

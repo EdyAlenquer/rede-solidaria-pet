@@ -17,7 +17,7 @@ services:
           name: rede-solidaria-pet-db
           property: connectionString
       - key: CORS_ORIGINS
-        sync: false
+        value: https://frontend-edyalenquers-projects.vercel.app
 
 databases:
   - name: rede-solidaria-pet-db
