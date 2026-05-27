@@ -30,8 +30,8 @@ O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md).
 | 2    | Modelagem e Persistência (Backend)         | ✅ Concluída  |
 | 3    | API REST — Pedidos                         | ✅ Concluída  |
 | 4    | API REST — Atendimentos e Doadores         | ✅ Concluída  |
-| 5    | Frontend — Fundação                        | ⏳ Pendente   |
-| 6    | Frontend — Telas Principais                | ⏳ Pendente   |
+| 5    | Frontend — Fundação                        | ✅ Concluída  |
+| 6    | Frontend — Telas Principais                | ✅ Concluída  |
 | 7    | Qualidade, Acessibilidade e Testes         | ⏳ Pendente   |
 | 8    | Deploy, Auditoria e Entrega                | ⏳ Pendente   |
 
@@ -47,9 +47,12 @@ O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md).
 - 93 testes (unitários + integração) passando.
 
 **Frontend (`frontend/`)**
-- Scaffold Vite + React + TypeScript com tela placeholder.
+- SPA Vite + React + TypeScript com roteamento principal.
+- Layout base responsivo inspirado no protótipo `layout.zip`.
+- Telas reais de home, lista, criação e detalhe de pedidos.
+- Integração com a API para pedidos, doadores e atendimentos.
+- Estados de carregamento, erro, vazio e validação client-side em português.
 - Lint (ESLint) e formatação (Prettier) configurados.
-- Telas reais e integração com a API ainda não foram desenvolvidas.
 
 **Infraestrutura**
 - Workflows de CI no GitHub Actions para backend e frontend.
@@ -57,7 +60,6 @@ O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md).
 
 ### O que ainda falta
 
-- Toda a interface de usuário e integração frontend ↔ backend (Fases 5 e 6).
 - Acessibilidade, testes E2E, auditorias de performance (Fase 7).
 - Deploy em ambiente público e fechamento do relatório acadêmico (Fase 8).
 
@@ -109,7 +111,7 @@ cp .env.example .env
 npm run dev
 ```
 
-- App em http://localhost:5173 (atualmente exibe apenas placeholder)
+- App em http://localhost:5173
 
 Mais detalhes em [`frontend/README.md`](frontend/README.md).
 
