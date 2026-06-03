@@ -5,7 +5,10 @@ from functools import lru_cache
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-PRODUCTION_CORS_ORIGINS = ("https://frontend-edyalenquers-projects.vercel.app",)
+#: Valor padrão da chave de assinatura JWT, seguro apenas para desenvolvimento.
+#: Em produção o uso deste valor é bloqueado por `Settings.secret_key_efetiva`.
+#: Tem ≥32 bytes para satisfazer o tamanho mínimo recomendado de chave HS256.
+DEFAULT_SECRET_KEY = "dev-insecure-troque-em-producao-change-me"
 
 
 class Settings(BaseSettings):
@@ -29,16 +32,47 @@ class Settings(BaseSettings):
     database_url: str = Field(default="sqlite:///./rede_solidaria_pet.db")
     cors_origins: str = Field(default="")
 
+    # Autenticação / JWT
+    secret_key: str = Field(default=DEFAULT_SECRET_KEY)
+    jwt_algorithm: str = Field(default="HS256")
+    access_token_expire_minutes: int = Field(default=60 * 24)
+
+    # Rate limiting (slowapi)
+    rate_limit_enabled: bool = Field(default=True)
+    rate_limit_auth: str = Field(default="5/minute")
+    rate_limit_create: str = Field(default="30/minute")
+    rate_limit_contato: str = Field(default="30/minute")
+
     def allowed_cors_origins(self) -> list[str]:
         """Retorna as origens CORS permitidas.
+
+        As origens são derivadas exclusivamente da variável de ambiente
+        `CORS_ORIGINS` (lista separada por vírgulas). Em produção, configure a
+        origem do frontend nessa variável (ex.: no `render.yaml`).
 
         Returns:
             Lista de origens sem espaços e sem valores vazios.
         """
-        origins = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
-        if self.app_env == "production":
-            origins.extend(origin for origin in PRODUCTION_CORS_ORIGINS if origin not in origins)
-        return origins
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    def secret_key_efetiva(self) -> str:
+        """Retorna a chave de assinatura JWT validada para o ambiente atual.
+
+        Em produção, recusa-se a operar com o `secret_key` default inseguro,
+        falhando de forma clara para evitar assinaturas previsíveis.
+
+        Returns:
+            Chave de assinatura a ser usada por `app.core.security`.
+
+        Raises:
+            RuntimeError: se `app_env == "production"` e `secret_key` ainda for
+                o valor default inseguro.
+        """
+        if self.app_env == "production" and self.secret_key == DEFAULT_SECRET_KEY:
+            raise RuntimeError(
+                "SECRET_KEY default inseguro em produção: defina uma SECRET_KEY própria."
+            )
+        return self.secret_key
 
 
 @lru_cache

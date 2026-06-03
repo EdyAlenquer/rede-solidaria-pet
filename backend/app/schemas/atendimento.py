@@ -15,10 +15,9 @@ class AtendimentoBase(BaseModel):
 class AtendimentoCreate(AtendimentoBase):
     """Payload para registrar um atendimento.
 
-    `doador_id` é informado no corpo; `pedido_id` vem da URL.
+    O corpo traz apenas `tipo_ajuda` e `observacao`; o `pedido_id` vem da URL e
+    o doador é derivado do usuário autenticado (find-or-create por e-mail).
     """
-
-    doador_id: int = Field(gt=0)
 
 
 class AtendimentoRead(AtendimentoBase):

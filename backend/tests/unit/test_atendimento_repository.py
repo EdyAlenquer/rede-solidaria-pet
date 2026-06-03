@@ -22,6 +22,9 @@ def pedido_existente(db_session: Session):
             categoria="resgate",
             urgencia=UrgenciaEnum.ALTA,
             contato="11999990000",
+            cidade="São Paulo",
+            estado="SP",
+            consentimento_aceito=True,
         )
     )
 
@@ -30,7 +33,9 @@ def pedido_existente(db_session: Session):
 def doador_existente(db_session: Session):
     """Cria um doador para registrar atendimentos."""
     repo = DoadorRepository(db_session)
-    return repo.create(DoadorCreate(nome="Maria", telefone="11988887777"))
+    return repo.create(
+        DoadorCreate(nome="Maria", telefone="11988887777", consentimento_aceito=True)
+    )
 
 
 def test_create_persiste_atendimento_e_relaciona_entidades(
@@ -41,7 +46,8 @@ def test_create_persiste_atendimento_e_relaciona_entidades(
 
     atendimento = repo.create(
         pedido_existente.id,
-        AtendimentoCreate(doador_id=doador_existente.id, tipo_ajuda="ração"),
+        AtendimentoCreate(tipo_ajuda="ração"),
+        doador_id=doador_existente.id,
     )
 
     assert atendimento.id is not None
@@ -58,7 +64,8 @@ def test_create_falha_quando_pedido_nao_existe(db_session: Session, doador_exist
     with pytest.raises(IntegrityError):
         repo.create(
             9999,
-            AtendimentoCreate(doador_id=doador_existente.id, tipo_ajuda="ração"),
+            AtendimentoCreate(tipo_ajuda="ração"),
+            doador_id=doador_existente.id,
         )
 
 
@@ -69,7 +76,27 @@ def test_create_falha_quando_doador_nao_existe(db_session: Session, pedido_exist
     with pytest.raises(IntegrityError):
         repo.create(
             pedido_existente.id,
-            AtendimentoCreate(doador_id=9999, tipo_ajuda="ração"),
+            AtendimentoCreate(tipo_ajuda="ração"),
+            doador_id=9999,
+        )
+
+
+def test_create_segundo_atendimento_mesmo_doador_e_pedido_viola_unique(
+    db_session: Session, pedido_existente, doador_existente
+) -> None:
+    """UniqueConstraint(pedido_id, doador_id) impede atendimento duplicado."""
+    repo = AtendimentoRepository(db_session)
+    repo.create(
+        pedido_existente.id,
+        AtendimentoCreate(tipo_ajuda="ração"),
+        doador_id=doador_existente.id,
+    )
+
+    with pytest.raises(IntegrityError):
+        repo.create(
+            pedido_existente.id,
+            AtendimentoCreate(tipo_ajuda="transporte"),
+            doador_id=doador_existente.id,
         )
 
 
@@ -78,13 +105,18 @@ def test_list_by_pedido_retorna_apenas_atendimentos_do_pedido(
 ) -> None:
     """`list_by_pedido` filtra pelos pedidos relacionados."""
     repo = AtendimentoRepository(db_session)
-    repo.create(
-        pedido_existente.id,
-        AtendimentoCreate(doador_id=doador_existente.id, tipo_ajuda="ração"),
+    outro_doador = DoadorRepository(db_session).create(
+        DoadorCreate(nome="João", telefone="11977776666", consentimento_aceito=True)
     )
     repo.create(
         pedido_existente.id,
-        AtendimentoCreate(doador_id=doador_existente.id, tipo_ajuda="transporte"),
+        AtendimentoCreate(tipo_ajuda="ração"),
+        doador_id=doador_existente.id,
+    )
+    repo.create(
+        pedido_existente.id,
+        AtendimentoCreate(tipo_ajuda="transporte"),
+        doador_id=outro_doador.id,
     )
 
     atendimentos = repo.list_by_pedido(pedido_existente.id)

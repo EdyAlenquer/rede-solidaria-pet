@@ -6,6 +6,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.core.request_context import obter_request_id
+
 
 class ProblemDetail(BaseModel):
     """Representação RFC 7807 (Problem Details for HTTP APIs) usada em respostas de erro."""
@@ -17,6 +19,9 @@ class ProblemDetail(BaseModel):
     status: int = Field(description="Código HTTP equivalente.")
     detail: str | None = Field(default=None, description="Descrição detalhada do erro.")
     instance: str | None = Field(default=None, description="URI da ocorrência específica.")
+    request_id: str | None = Field(
+        default=None, description="Identificador da requisição que originou o erro."
+    )
 
 
 class DomainError(Exception):
@@ -56,6 +61,55 @@ class PedidoNotAtendivelError(DomainError):
     title = "Pedido não pode receber atendimento"
 
 
+class AtendimentoDuplicadoError(DomainError):
+    """Erro quando um doador tenta registrar mais de um atendimento no mesmo pedido."""
+
+    status_code = 409
+    title = "Atendimento duplicado"
+
+
+class UsuarioNotFoundError(DomainError):
+    """Erro quando um usuário com o id informado não existe."""
+
+    status_code = 404
+    title = "Usuário não encontrado"
+
+
+class DenunciaNotFoundError(DomainError):
+    """Erro quando uma denúncia com o id informado não existe."""
+
+    status_code = 404
+    title = "Denúncia não encontrada"
+
+
+class EmailJaCadastradoError(DomainError):
+    """Erro quando o e-mail informado no registro já pertence a outro usuário."""
+
+    status_code = 409
+    title = "E-mail já cadastrado"
+
+
+class CredenciaisInvalidasError(DomainError):
+    """Erro quando as credenciais de login (e-mail/senha) são inválidas."""
+
+    status_code = 401
+    title = "Credenciais inválidas"
+
+
+class NaoAutenticadoError(DomainError):
+    """Erro quando uma operação protegida é acessada sem autenticação válida."""
+
+    status_code = 401
+    title = "Não autenticado"
+
+
+class AcessoNegadoError(DomainError):
+    """Erro quando o usuário autenticado não tem permissão para a operação."""
+
+    status_code = 403
+    title = "Acesso negado"
+
+
 class InvalidStatusTransitionError(DomainError):
     """Erro quando uma transição de status não é permitida pelas regras de negócio."""
 
@@ -75,13 +129,21 @@ def _problem_response(
         detail: detalhe opcional.
 
     Returns:
-        Resposta JSON com `content-type: application/problem+json`.
+        Resposta JSON com `content-type: application/problem+json`. Quando há um
+        request-id no contexto, ele é exposto no campo `request_id` e anexado ao
+        `instance` como fragmento (`#req-<id>`) para facilitar a correlação com
+        os logs.
     """
+    request_id = obter_request_id()
+    instance = str(request.url.path)
+    if request_id:
+        instance = f"{instance}#req-{request_id}"
     body = ProblemDetail(
         title=title,
         status=status,
         detail=detail,
-        instance=str(request.url.path),
+        instance=instance,
+        request_id=request_id or None,
     ).model_dump()
     return JSONResponse(
         status_code=status,

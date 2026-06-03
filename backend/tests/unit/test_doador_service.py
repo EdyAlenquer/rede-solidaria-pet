@@ -18,7 +18,9 @@ def test_create_persiste_doador(db_session: Session) -> None:
     """`create` persiste o doador e retorna o registro com id."""
     service = DoadorService(DoadorRepository(db_session))
 
-    doador = service.create(DoadorCreate(nome="Maria", telefone="11999990000"))
+    doador = service.create(
+        DoadorCreate(nome="Maria", telefone="11999990000", consentimento_aceito=True)
+    )
 
     assert doador.id is not None
     assert doador.nome == "Maria"
@@ -27,7 +29,9 @@ def test_create_persiste_doador(db_session: Session) -> None:
 def test_get_by_id_retorna_doador_existente(db_session: Session) -> None:
     """`get_by_id` retorna o doador quando o id existe."""
     service = DoadorService(DoadorRepository(db_session))
-    criado = service.create(DoadorCreate(nome="João", email="joao@example.com"))
+    criado = service.create(
+        DoadorCreate(nome="João", email="joao@example.com", consentimento_aceito=True)
+    )
 
     encontrado = service.get_by_id(criado.id)
 

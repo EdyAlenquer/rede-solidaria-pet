@@ -3,7 +3,9 @@
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_admin
 from app.database import get_db
+from app.models.usuario import Usuario
 from app.repositories.doador_repository import DoadorRepository
 from app.schemas import DoadorCreate, DoadorRead
 from app.services import DoadorService
@@ -52,23 +54,27 @@ def criar_doador(
 @router.get(
     "/{doador_id}",
     response_model=DoadorRead,
-    summary="Detalha um doador pelo id",
+    summary="Detalha um doador pelo id (restrito a admin)",
 )
 def detalhar_doador(
     doador_id: int,
     service: DoadorService = Depends(_service),
+    admin: Usuario = Depends(require_admin),
 ) -> DoadorRead:
-    """GET /api/v1/doadores/{id} — retorna contato completo administrativo.
+    """GET /api/v1/doadores/{id} — retorna contato completo (apenas admin).
 
     Args:
         doador_id: identificador do doador.
         service: serviço injetado.
+        admin: usuário administrador autenticado (exigência de papel).
 
     Returns:
         Doador encontrado com telefone e email.
 
     Raises:
-        DoadorNotFoundError: se o doador não existir.
+        NaoAutenticadoError: se não houver Bearer válido (vira 401).
+        AcessoNegadoError: se o usuário não for administrador (vira 403).
+        DoadorNotFoundError: se o doador não existir (vira 404).
     """
     doador = service.get_by_id(doador_id)
     return DoadorRead.model_validate(doador)

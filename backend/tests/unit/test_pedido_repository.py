@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 
-from app.models.enums import StatusPedidoEnum, UrgenciaEnum
+from app.models.enums import EspecieEnum, PorteEnum, StatusPedidoEnum, UrgenciaEnum
 from app.repositories.pedido_repository import PedidoRepository
 from app.schemas import PedidoCreate, PedidoStatusUpdate, PedidoUpdate
 
@@ -15,6 +15,9 @@ def _build_payload(**overrides) -> PedidoCreate:
         "categoria": "resgate",
         "urgencia": UrgenciaEnum.ALTA,
         "contato": "11999990000",
+        "cidade": "São Paulo",
+        "estado": "SP",
+        "consentimento_aceito": True,
     }
     base.update(overrides)
     return PedidoCreate(**base)
@@ -180,3 +183,65 @@ def test_count_respeita_filtros(db_session: Session) -> None:
     assert repo.count() == 3
     assert repo.count(urgencia=UrgenciaEnum.ALTA) == 2
     assert repo.count(urgencia=UrgenciaEnum.MEDIA) == 0
+
+
+def test_list_filtra_por_cidade_e_estado(db_session: Session) -> None:
+    """`list(cidade=..., estado=...)` filtra por igualdade exata."""
+    repo = PedidoRepository(db_session)
+    sp = repo.create(_build_payload(titulo="Pedido SP", cidade="São Paulo", estado="SP"))
+    repo.create(_build_payload(titulo="Pedido RJ", cidade="Rio de Janeiro", estado="RJ"))
+
+    apenas_sp = repo.list(cidade="São Paulo", estado="SP")
+
+    assert [p.id for p in apenas_sp] == [sp.id]
+
+
+def test_list_filtra_por_especie_e_porte(db_session: Session) -> None:
+    """`list(especie=..., porte=...)` filtra por igualdade exata."""
+    repo = PedidoRepository(db_session)
+    alvo = repo.create(
+        _build_payload(titulo="Cão médio", especie=EspecieEnum.CAO, porte=PorteEnum.MEDIO)
+    )
+    repo.create(_build_payload(titulo="Gato", especie=EspecieEnum.GATO, porte=PorteEnum.PEQUENO))
+
+    resultado = repo.list(especie=EspecieEnum.CAO, porte=PorteEnum.MEDIO)
+
+    assert [p.id for p in resultado] == [alvo.id]
+
+
+def test_list_ordena_por_distancia_quando_ponto_de_referencia(db_session: Session) -> None:
+    """Com lat/lon de referência, a listagem ordena do mais próximo ao mais distante."""
+    repo = PedidoRepository(db_session)
+    # São Paulo ~ (-23.55, -46.63); referência próxima a SP.
+    longe = repo.create(_build_payload(titulo="Manaus", latitude=-3.10, longitude=-60.02))
+    perto = repo.create(_build_payload(titulo="Campinas", latitude=-22.90, longitude=-47.06))
+
+    ordenado = repo.list(latitude=-23.55, longitude=-46.63)
+
+    assert [p.id for p in ordenado] == [perto.id, longe.id]
+
+
+def test_list_paginated_aceita_novos_filtros(db_session: Session) -> None:
+    """`list_paginated` respeita os filtros de cidade/estado/especie/porte."""
+    repo = PedidoRepository(db_session)
+    repo.create(_build_payload(titulo="SP cão", cidade="São Paulo", estado="SP"))
+    repo.create(_build_payload(titulo="Pedido RJ", cidade="Rio de Janeiro", estado="RJ"))
+
+    resultado = repo.list_paginated(page=1, page_size=10, cidade="São Paulo", estado="SP")
+
+    assert resultado.total == 1
+    assert {p.titulo for p in resultado.items} == {"SP cão"}
+
+
+def test_pedido_persiste_imagens_via_relationship(db_session: Session) -> None:
+    """Imagens anexadas via relationship são persistidas e ordenadas por `ordem`."""
+    from app.models.imagem import ImagemPedido
+
+    repo = PedidoRepository(db_session)
+    pedido = repo.create(_build_payload())
+    pedido.imagens.append(ImagemPedido(url="https://cdn/b.jpg", ordem=1))
+    pedido.imagens.append(ImagemPedido(url="https://cdn/a.jpg", ordem=0))
+    db_session.commit()
+
+    recarregado = repo.get_by_id(pedido.id)
+    assert [img.url for img in recarregado.imagens] == ["https://cdn/a.jpg", "https://cdn/b.jpg"]
