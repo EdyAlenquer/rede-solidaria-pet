@@ -43,6 +43,39 @@ class Settings(BaseSettings):
     rate_limit_create: str = Field(default="30/minute")
     rate_limit_contato: str = Field(default="30/minute")
 
+    # Upload de imagens
+    #: Diretório onde o `LocalStorageBackend` grava os arquivos enviados.
+    #: Em produção, troque por um backend de object storage (Cloudinary/R2).
+    upload_dir: str = Field(default="uploads")
+    #: Prefixo público sob o qual os arquivos são servidos (StaticFiles).
+    public_upload_path: str = Field(default="/uploads")
+    #: Tamanho máximo aceito por imagem, em bytes (default 5 MiB).
+    max_upload_bytes: int = Field(default=5 * 1024 * 1024)
+    #: Content-types de imagem aceitos no upload.
+    allowed_image_types: frozenset[str] = Field(
+        default=frozenset({"image/jpeg", "image/png", "image/webp"})
+    )
+    #: Número máximo de imagens por pedido.
+    max_imagens_por_pedido: int = Field(default=6)
+
+    # Notificações
+    #: Backend de notificação ao protetor quando um atendimento é registrado.
+    #: "log" (default): apenas registra a notificação no logging estruturado, sem
+    #: enviar nada externo (seguro em dev/test). "smtp": envia e-mail via SMTP.
+    notifier_backend: str = Field(default="log")
+    #: Host do servidor SMTP (obrigatório quando `notifier_backend == "smtp"`).
+    smtp_host: str | None = Field(default=None)
+    #: Porta do servidor SMTP (default 587, submissão com STARTTLS).
+    smtp_port: int = Field(default=587)
+    #: Usuário de autenticação SMTP (opcional).
+    smtp_user: str | None = Field(default=None)
+    #: Senha de autenticação SMTP (opcional).
+    smtp_password: str | None = Field(default=None)
+    #: Remetente dos e-mails de notificação (obrigatório quando backend "smtp").
+    smtp_from: str | None = Field(default=None)
+    #: Usa STARTTLS na conexão SMTP (default True).
+    smtp_tls: bool = Field(default=True)
+
     def allowed_cors_origins(self) -> list[str]:
         """Retorna as origens CORS permitidas.
 

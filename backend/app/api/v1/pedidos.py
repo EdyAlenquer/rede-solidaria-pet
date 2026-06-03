@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.notifications import link_whatsapp
 from app.core.rate_limit import limite_contato, limite_criacao, limiter
 from app.database import get_db
 from app.models.enums import (
@@ -194,14 +195,15 @@ def revelar_contato_pedido(
         usuario: usuário autenticado (exigência de autenticação).
 
     Returns:
-        Objeto com o contato do responsável pelo pedido.
+        Objeto com o contato do responsável e, quando for telefone BR, o link
+        `wa.me` correspondente em `whatsapp`.
 
     Raises:
         NaoAutenticadoError: se não houver Bearer válido (vira 401).
         PedidoNotFoundError: se o pedido não existir (vira 404).
     """
     pedido = service.get_by_id(pedido_id)
-    return PedidoContato(contato=pedido.contato)
+    return PedidoContato(contato=pedido.contato, whatsapp=link_whatsapp(pedido.contato))
 
 
 @router.patch(

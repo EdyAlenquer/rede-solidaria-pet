@@ -47,6 +47,9 @@ frontend/test-results/
 *.sqlite
 *.sqlite3
 
+# Uploads locais (storage de imagens em desenvolvimento)
+backend/uploads/
+
 # Logs
 *.log
 

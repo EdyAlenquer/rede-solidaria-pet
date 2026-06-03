@@ -1,7 +1,10 @@
 """Ponto de entrada da aplicação FastAPI."""
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.health import router as health_router
 from app.api.v1.admin import router as admin_router
@@ -10,6 +13,7 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.denuncias import router as denuncias_router
 from app.api.v1.doadores import router as doadores_router
 from app.api.v1.estatisticas import router as estatisticas_router
+from app.api.v1.imagens import router as imagens_router
 from app.api.v1.me import router as me_router
 from app.api.v1.pedidos import router as pedidos_router
 from app.config import get_settings
@@ -65,10 +69,23 @@ def create_app() -> FastAPI:
     registrar_rate_limit(application)
 
     register_exception_handlers(application)
+
+    # Serve os arquivos de imagem enviados localmente. Em produção, o
+    # `public_upload_path` apontaria para o CDN do object storage (Cloudinary/R2)
+    # e este StaticFiles seria removido.
+    upload_dir = Path(settings.upload_dir)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    application.mount(
+        settings.public_upload_path,
+        StaticFiles(directory=str(upload_dir)),
+        name="uploads",
+    )
+
     application.include_router(health_router)
     application.include_router(auth_router, prefix="/api/v1")
     application.include_router(me_router, prefix="/api/v1")
     application.include_router(pedidos_router, prefix="/api/v1")
+    application.include_router(imagens_router, prefix="/api/v1")
     application.include_router(denuncias_router, prefix="/api/v1")
     application.include_router(doadores_router, prefix="/api/v1")
     application.include_router(atendimentos_router, prefix="/api/v1")

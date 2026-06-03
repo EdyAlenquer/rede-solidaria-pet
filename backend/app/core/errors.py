@@ -117,6 +117,34 @@ class InvalidStatusTransitionError(DomainError):
     title = "Transição de status inválida"
 
 
+class ImagemNotFoundError(DomainError):
+    """Erro quando uma imagem com o id informado não existe no pedido."""
+
+    status_code = 404
+    title = "Imagem não encontrada"
+
+
+class TipoImagemInvalidoError(DomainError):
+    """Erro quando o arquivo enviado não é de um tipo de imagem permitido."""
+
+    status_code = 415
+    title = "Tipo de imagem não suportado"
+
+
+class ImagemMuitoGrandeError(DomainError):
+    """Erro quando o arquivo enviado excede o tamanho máximo permitido."""
+
+    status_code = 413
+    title = "Imagem excede o tamanho máximo"
+
+
+class LimiteImagensExcedidoError(DomainError):
+    """Erro quando o pedido já atingiu o número máximo de imagens."""
+
+    status_code = 409
+    title = "Limite de imagens do pedido excedido"
+
+
 def _problem_response(
     request: Request, status: int, title: str, detail: str | None
 ) -> JSONResponse:

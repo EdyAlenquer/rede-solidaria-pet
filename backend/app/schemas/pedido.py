@@ -143,10 +143,13 @@ class PedidoContato(BaseModel):
     """Schema de leitura do contato protegido de um pedido.
 
     Servido apenas em rota autenticada (`GET /pedidos/{id}/contato`), já que o
-    `contato` é omitido da leitura pública (`PedidoRead`).
+    `contato` é omitido da leitura pública (`PedidoRead`). Quando o `contato`
+    parece um telefone brasileiro, `whatsapp` traz o link `wa.me`
+    correspondente; caso contrário, vem nulo.
     """
 
     contato: str
+    whatsapp: str | None = None
 
 
 class PedidoRead(PedidoBase):

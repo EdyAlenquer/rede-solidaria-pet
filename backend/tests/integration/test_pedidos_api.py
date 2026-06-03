@@ -264,13 +264,29 @@ def test_get_contato_exige_auth(api_client: TestClient, auth_headers: dict) -> N
 def test_get_contato_autenticado_retorna_contato(
     api_client: TestClient, auth_headers: dict
 ) -> None:
-    """GET /api/v1/pedidos/{id}/contato autenticado retorna {contato}."""
+    """GET /api/v1/pedidos/{id}/contato autenticado retorna contato e link wa.me."""
     criado = api_client.post("/api/v1/pedidos", json=_VALID_PAYLOAD, headers=auth_headers).json()
 
     r = api_client.get(f"/api/v1/pedidos/{criado['id']}/contato", headers=auth_headers)
 
     assert r.status_code == 200
-    assert r.json() == {"contato": _VALID_PAYLOAD["contato"]}
+    assert r.json() == {
+        "contato": _VALID_PAYLOAD["contato"],
+        "whatsapp": "https://wa.me/5511999990000",
+    }
+
+
+def test_get_contato_com_email_retorna_whatsapp_nulo(
+    api_client: TestClient, auth_headers: dict
+) -> None:
+    """Quando o contato é um e-mail, `whatsapp` vem nulo (não é telefone)."""
+    payload = {**_VALID_PAYLOAD, "contato": "protetor@example.com"}
+    criado = api_client.post("/api/v1/pedidos", json=payload, headers=auth_headers).json()
+
+    r = api_client.get(f"/api/v1/pedidos/{criado['id']}/contato", headers=auth_headers)
+
+    assert r.status_code == 200
+    assert r.json() == {"contato": "protetor@example.com", "whatsapp": None}
 
 
 def test_get_contato_pedido_inexistente_retorna_404(

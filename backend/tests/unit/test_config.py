@@ -69,3 +69,14 @@ def test_secret_key_efetiva_em_producao_com_chave_propria_ok() -> None:
     settings = Settings(app_env="production", secret_key="uma-chave-bem-secreta-e-unica")
 
     assert settings.secret_key_efetiva() == "uma-chave-bem-secreta-e-unica"
+
+
+def test_defaults_de_notificacao() -> None:
+    """As Settings expõem o backend de notificação default "log" e SMTP vazio."""
+    settings = Settings()
+
+    assert settings.notifier_backend == "log"
+    assert settings.smtp_host is None
+    assert settings.smtp_port == 587
+    assert settings.smtp_from is None
+    assert settings.smtp_tls is True

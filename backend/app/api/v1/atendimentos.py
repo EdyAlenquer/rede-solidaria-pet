@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.notifications import get_notifier
 from app.core.rate_limit import limite_criacao, limiter
 from app.database import get_db
 from app.models.usuario import Usuario
@@ -23,12 +24,13 @@ def _service(db: Session = Depends(get_db)) -> AtendimentoService:
         db: sessão injetada por `get_db`.
 
     Returns:
-        Instância de serviço.
+        Instância de serviço, com o `Notifier` resolvido por `get_notifier`.
     """
     return AtendimentoService(
         AtendimentoRepository(db),
         PedidoRepository(db),
         DoadorRepository(db),
+        notifier=get_notifier(),
     )
 
 

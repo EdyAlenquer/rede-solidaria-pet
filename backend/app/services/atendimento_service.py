@@ -1,5 +1,7 @@
 """Serviço de domínio para AtendimentoPedido."""
 
+import logging
+
 from sqlalchemy.exc import IntegrityError
 
 from app.core.errors import (
@@ -7,13 +9,18 @@ from app.core.errors import (
     PedidoNotAtendivelError,
     PedidoNotFoundError,
 )
+from app.core.notifications import Notifier, get_notifier
 from app.models.atendimento import AtendimentoPedido
+from app.models.doador import DoadorVoluntario
 from app.models.enums import StatusPedidoEnum
+from app.models.pedido import PedidoAjuda
 from app.models.usuario import Usuario
 from app.repositories.atendimento_repository import AtendimentoRepository
 from app.repositories.doador_repository import DoadorRepository
 from app.repositories.pedido_repository import PedidoRepository
 from app.schemas import AtendimentoCreate, PedidoStatusUpdate
+
+logger = logging.getLogger(__name__)
 
 #: Status em que um pedido não aceita novos atendimentos.
 _STATUS_NAO_ATENDIVEIS = frozenset({StatusPedidoEnum.CONCLUIDO, StatusPedidoEnum.CANCELADO})
@@ -27,6 +34,7 @@ class AtendimentoService:
         atendimento_repository: AtendimentoRepository,
         pedido_repository: PedidoRepository,
         doador_repository: DoadorRepository,
+        notifier: Notifier | None = None,
     ) -> None:
         """Inicializa o serviço com os repositórios necessários.
 
@@ -34,10 +42,13 @@ class AtendimentoService:
             atendimento_repository: Repositório usado para persistir atendimentos.
             pedido_repository: Repositório usado para consultar e atualizar pedidos.
             doador_repository: Repositório usado para validar doadores.
+            notifier: Notifier usado para avisar o protetor após um atendimento
+                bem-sucedido. Quando None, usa o backend de `get_notifier()`.
         """
         self.atendimento_repository = atendimento_repository
         self.pedido_repository = pedido_repository
         self.doador_repository = doador_repository
+        self.notifier = notifier or get_notifier()
 
     def create(
         self, pedido_id: int, payload: AtendimentoCreate, *, usuario: Usuario
@@ -102,7 +113,43 @@ class AtendimentoService:
         except Exception:
             self.atendimento_repository.session.rollback()
             raise
+
+        # O atendimento já está persistido: notificar é um efeito colateral
+        # best-effort que nunca deve quebrar a operação principal.
+        self._notificar_protetor(pedido=pedido, atendimento=atendimento, doador=doador)
         return atendimento
+
+    def _notificar_protetor(
+        self,
+        *,
+        pedido: PedidoAjuda,
+        atendimento: AtendimentoPedido,
+        doador: DoadorVoluntario,
+    ) -> None:
+        """Notifica o protetor sobre o novo atendimento, sem propagar falhas.
+
+        Chamado apenas após o commit bem-sucedido. Qualquer erro de notificação
+        é registrado em log e absorvido: o atendimento já foi persistido e não
+        deve ser revertido por uma falha de efeito colateral.
+
+        Args:
+            pedido: pedido atendido (traz o contato do autor).
+            atendimento: atendimento recém-criado.
+            doador: doador derivado do usuário autenticado.
+
+        Side Effects:
+            Aciona o `Notifier` configurado; em caso de exceção, apenas loga.
+        """
+        try:
+            self.notifier.notificar_novo_atendimento(
+                pedido=pedido, atendimento=atendimento, doador=doador
+            )
+        except Exception:
+            logger.exception(
+                "Falha ao notificar protetor do pedido id=%s sobre o atendimento id=%s",
+                pedido.id,
+                atendimento.id,
+            )
 
     def list_by_pedido(self, pedido_id: int) -> list[AtendimentoPedido]:
         """Lista atendimentos de um pedido existente.

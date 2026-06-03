@@ -57,13 +57,43 @@ def _criar_usuario(db_session: Session, *, email: str = "doador@example.com") ->
     return usuario
 
 
-def _service(db_session: Session) -> AtendimentoService:
-    """Constrói o serviço com repositórios reais para a sessão de teste."""
+def _service(db_session: Session, *, notifier=None) -> AtendimentoService:
+    """Constrói o serviço com repositórios reais para a sessão de teste.
+
+    Args:
+        db_session: sessão de teste.
+        notifier: notifier opcional a injetar (default: o do serviço).
+
+    Returns:
+        Instância de `AtendimentoService`.
+    """
+    kwargs = {} if notifier is None else {"notifier": notifier}
     return AtendimentoService(
         atendimento_repository=AtendimentoRepository(db_session),
         pedido_repository=PedidoRepository(db_session),
         doador_repository=DoadorRepository(db_session),
+        **kwargs,
     )
+
+
+class _NotifierEspiao:
+    """Notifier-espião que registra as chamadas recebidas, sem efeitos externos."""
+
+    def __init__(self) -> None:
+        """Inicializa o espião com a lista de chamadas vazia."""
+        self.chamadas: list[dict] = []
+
+    def notificar_novo_atendimento(self, *, pedido, atendimento, doador) -> None:
+        """Registra os argumentos da notificação para inspeção posterior."""
+        self.chamadas.append({"pedido": pedido, "atendimento": atendimento, "doador": doador})
+
+
+class _NotifierQueFalha:
+    """Notifier que sempre falha, para validar que a falha não quebra o atendimento."""
+
+    def notificar_novo_atendimento(self, *, pedido, atendimento, doador) -> None:
+        """Sempre levanta para simular falha de notificação."""
+        raise RuntimeError("falha simulada de notificação")
 
 
 def test_atendimento_service_eh_exportado_pelo_pacote_de_servicos() -> None:
@@ -187,6 +217,39 @@ def test_create_desfaz_atendimento_se_atualizacao_de_status_falhar(
 
     db_session.rollback()
     assert atendimento_repo.list_by_pedido(pedido.id) == []
+
+
+def test_create_notifica_protetor_com_pedido_e_atendimento_certos(db_session: Session) -> None:
+    """Após criar o atendimento, o serviço notifica o protetor com o pedido/atendimento certos."""
+    pedido_repo = PedidoRepository(db_session)
+    pedido = pedido_repo.create(_pedido_payload())
+    usuario = _criar_usuario(db_session)
+    espiao = _NotifierEspiao()
+
+    atendimento = _service(db_session, notifier=espiao).create(
+        pedido.id, AtendimentoCreate(tipo_ajuda="ração"), usuario=usuario
+    )
+
+    assert len(espiao.chamadas) == 1
+    chamada = espiao.chamadas[0]
+    assert chamada["pedido"].id == pedido.id
+    assert chamada["atendimento"].id == atendimento.id
+    assert chamada["doador"].email == usuario.email
+
+
+def test_create_continua_201_quando_notificacao_falha(db_session: Session) -> None:
+    """Falha do notifier não impede a criação do atendimento (já persistido)."""
+    pedido_repo = PedidoRepository(db_session)
+    atendimento_repo = AtendimentoRepository(db_session)
+    pedido = pedido_repo.create(_pedido_payload())
+    usuario = _criar_usuario(db_session)
+
+    atendimento = _service(db_session, notifier=_NotifierQueFalha()).create(
+        pedido.id, AtendimentoCreate(tipo_ajuda="ração"), usuario=usuario
+    )
+
+    assert atendimento.id is not None
+    assert atendimento_repo.list_by_pedido(pedido.id)[0].id == atendimento.id
 
 
 def test_list_by_pedido_lanca_pedido_not_found_para_pedido_inexistente(
