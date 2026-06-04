@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://rede-solidaria-pet.vercel.app/sitemap.xml

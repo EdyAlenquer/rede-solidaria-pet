@@ -16,6 +16,38 @@ describe('componentes base', () => {
     expect(screen.getByLabelText('Bairro')).toHaveAttribute('placeholder', 'Vila Esperança')
   })
 
+  it('marca input inválido e descreve o erro', () => {
+    render(<Input id="email" label="E-mail" error="Informe um e-mail válido." />)
+
+    const campo = screen.getByLabelText('E-mail')
+    expect(campo).toHaveAttribute('aria-invalid', 'true')
+    expect(campo).toHaveAttribute('aria-describedby', 'email-erro')
+    const mensagem = screen.getByText('Informe um e-mail válido.')
+    expect(mensagem).toHaveAttribute('id', 'email-erro')
+  })
+
+  it('não marca input como inválido sem erro', () => {
+    render(<Input id="bairro" label="Bairro" />)
+
+    expect(screen.getByLabelText('Bairro')).not.toHaveAttribute('aria-invalid')
+  })
+
+  it('marca select inválido e descreve o erro', () => {
+    render(
+      <Select
+        id="categoria"
+        label="Categoria"
+        error="Selecione uma categoria."
+        options={[{ label: 'Ração', value: 'racao' }]}
+      />,
+    )
+
+    const campo = screen.getByLabelText('Categoria')
+    expect(campo).toHaveAttribute('aria-invalid', 'true')
+    expect(campo).toHaveAttribute('aria-describedby', 'categoria-erro')
+    expect(screen.getByText('Selecione uma categoria.')).toHaveAttribute('id', 'categoria-erro')
+  })
+
   it('associa select ao label e opções', () => {
     render(
       <Select

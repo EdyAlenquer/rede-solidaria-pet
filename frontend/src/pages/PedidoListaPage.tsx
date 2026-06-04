@@ -1,20 +1,35 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
-import { Badge, Button, Select } from '../components/ui'
-import { listarPedidos } from '../services/api/pedidos'
-import type { Pedido, PedidoPage, StatusPedido, Urgencia } from '../types/api'
+import { Badge, Button, Select, Skeleton } from '../components/ui'
+import { Seo } from '../components/Seo'
+import {
+  categorias,
+  especies,
+  portes,
+  rotuloDe,
+  status as statusOpcoes,
+  ufs,
+  urgencias,
+} from '../constants/dominio'
+import { listarPedidos, type PedidoListParams } from '../services/api/pedidos'
+import { rotuloLocalizacao, tomUrgencia, urlCapa } from '../utils/pedido'
+import type { Especie, Pedido, PedidoPage, Porte, StatusPedido, Urgencia } from '../types/api'
 
 const PAGE_SIZE = 20
 
-const urgenciaLabels: Record<Urgencia, string> = {
-  alta: 'Urgente',
-  media: 'Média',
-  baixa: 'Baixa',
+/** Adiciona uma opção placeholder vazia no topo de uma lista de domínio. */
+function comTodos(opcoes: { value: string; label: string }[], texto: string) {
+  return [{ value: '', label: texto }, ...opcoes]
 }
 
 /**
- * Página de lista pública de pedidos com busca e filtros.
+ * Página de lista pública de pedidos com busca textual e filtros reais.
+ *
+ * Todos os filtros (busca, urgência, categoria, status, espécie, porte, cidade
+ * e estado) são refletidos na URL para serem compartilháveis e recarregáveis.
+ * Exibe esqueletos com shimmer durante o carregamento e cards com a foto de
+ * capa real (ou fallback), localização e contagem de atendimentos.
  *
  * @returns Tela de feed de pedidos integrada à API.
  */
@@ -28,23 +43,39 @@ export function PedidoListaPage() {
   const urgencia = searchParams.get('urgencia') as Urgencia | null
   const categoria = searchParams.get('categoria') ?? ''
   const status = searchParams.get('status') as StatusPedido | null
+  const especie = searchParams.get('especie') ?? ''
+  const porte = searchParams.get('porte') ?? ''
+  const cidade = searchParams.get('cidade') ?? ''
+  const estado = searchParams.get('estado') ?? ''
   const page = Math.max(Number(searchParams.get('page') ?? '1') || 1, 1)
+
+  // Campo de cidade é controlado localmente e só vira filtro de URL ao submeter,
+  // evitando uma chamada à API a cada tecla digitada.
+  const [cidadeInput, setCidadeInput] = useState(cidade)
+  useEffect(() => {
+    setCidadeInput(cidade)
+  }, [cidade])
 
   useEffect(() => {
     let active = true
     setLoading(true)
     setError(null)
-    listarPedidos({
+    const params: PedidoListParams = {
       page,
       page_size: PAGE_SIZE,
       ...(q ? { q } : {}),
       ...(urgencia ? { urgencia } : {}),
       ...(categoria ? { categoria } : {}),
       ...(status ? { status } : {}),
-    })
-      .then((page) => {
+      ...(especie ? { especie } : {}),
+      ...(porte ? { porte } : {}),
+      ...(cidade ? { cidade } : {}),
+      ...(estado ? { estado } : {}),
+    }
+    listarPedidos(params)
+      .then((resposta) => {
         if (active) {
-          setPedidoPage(page)
+          setPedidoPage(resposta)
           setLoading(false)
         }
       })
@@ -58,58 +89,58 @@ export function PedidoListaPage() {
     return () => {
       active = false
     }
-  }, [categoria, page, q, status, urgencia])
+  }, [categoria, cidade, especie, estado, page, porte, q, status, urgencia])
 
   const total = pedidoPage?.page_info.total ?? 0
+  const totalPages = pedidoPage?.page_info.total_pages ?? 1
   const pedidos = useMemo(() => pedidoPage?.items ?? [], [pedidoPage])
 
-  function updateFilter(next: {
-    categoria?: string | null
-    page?: number
-    q?: string
-    status?: StatusPedido | null
-    urgencia?: Urgencia | null
-  }) {
+  function updateFilter(next: Record<string, string | number | null>) {
     const params = new URLSearchParams(searchParams)
-    if ('q' in next) {
-      const value = next.q?.trim() ?? ''
-      if (value) params.set('q', value)
-      else params.delete('q')
+    for (const [chave, valor] of Object.entries(next)) {
+      if (chave === 'page') {
+        if (typeof valor === 'number' && valor > 1) {
+          params.set('page', String(valor))
+        } else {
+          params.delete('page')
+        }
+        continue
+      }
+      const texto = typeof valor === 'string' ? valor.trim() : ''
+      if (texto) {
+        params.set(chave, texto)
+      } else {
+        params.delete(chave)
+      }
       params.delete('page')
-    }
-    if ('categoria' in next) {
-      const value = next.categoria?.trim() ?? ''
-      if (value) params.set('categoria', value)
-      else params.delete('categoria')
-      params.delete('page')
-    }
-    if ('urgencia' in next) {
-      if (next.urgencia) params.set('urgencia', next.urgencia)
-      else params.delete('urgencia')
-      params.delete('page')
-    }
-    if ('status' in next) {
-      if (next.status) params.set('status', next.status)
-      else params.delete('status')
-      params.delete('page')
-    }
-    if ('page' in next) {
-      if (next.page && next.page > 1) params.set('page', String(next.page))
-      else params.delete('page')
     }
     setSearchParams(params, { replace: true })
   }
 
+  function aplicarCidade(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    updateFilter({ cidade: cidadeInput })
+  }
+
   return (
     <section className="rsp-page rsp-feed">
+      <Seo
+        title="Pedidos da comunidade"
+        description="Veja e filtre pedidos de ajuda para animais em situação de vulnerabilidade."
+      />
       <div className="rsp-page__header">
         <div>
           <p className="rsp-eyebrow">Comunidade</p>
           <h1 className="rsp-page__title">Pedidos da comunidade</h1>
-          <p className="rsp-page__sub">
-            {total} {total === 1 ? 'pedido encontrado' : 'pedidos encontrados'} perto de você.
+          <p className="rsp-page__sub" aria-live="polite">
+            {loading
+              ? 'Carregando pedidos…'
+              : `${total} ${total === 1 ? 'pedido encontrado' : 'pedidos encontrados'}.`}
           </p>
         </div>
+        <Link className="rsp-btn rsp-btn--secondary" to="/pedidos/mapa">
+          Ver no mapa
+        </Link>
       </div>
 
       <div className="rsp-feed__toolbar">
@@ -120,37 +151,60 @@ export function PedidoListaPage() {
             aria-label="Buscar pedidos"
             value={q}
             onChange={(event) => updateFilter({ q: event.target.value })}
-            placeholder="Buscar por bairro, categoria, palavra-chave..."
+            placeholder="Buscar por título ou descrição..."
           />
         </label>
+
         <div className="rsp-filter-selects">
           <Select
             id="categoria-filtro"
             label="Categoria"
             value={categoria}
             onChange={(event) => updateFilter({ categoria: event.target.value })}
-            options={[
-              { label: 'Todas as categorias', value: '' },
-              { label: 'Ração', value: 'ração' },
-              { label: 'Transporte', value: 'transporte' },
-              { label: 'Veterinário', value: 'veterinário' },
-              { label: 'Lar temporário', value: 'lar temporário' },
-              { label: 'Resgate', value: 'resgate' },
-            ]}
+            options={comTodos(categorias, 'Todas as categorias')}
           />
           <Select
             id="status-filtro"
             label="Status"
             value={status ?? ''}
-            onChange={(event) => updateFilter({ status: event.target.value as StatusPedido | null })}
-            options={[
-              { label: 'Todos os status', value: '' },
-              { label: 'Aberto', value: 'aberto' },
-              { label: 'Em andamento', value: 'em_andamento' },
-              { label: 'Concluído', value: 'concluido' },
-            ]}
+            onChange={(event) => updateFilter({ status: event.target.value })}
+            options={comTodos(statusOpcoes, 'Todos os status')}
           />
+          <Select
+            id="especie-filtro"
+            label="Espécie"
+            value={especie}
+            onChange={(event) => updateFilter({ especie: event.target.value })}
+            options={comTodos(especies, 'Todas as espécies')}
+          />
+          <Select
+            id="porte-filtro"
+            label="Porte"
+            value={porte}
+            onChange={(event) => updateFilter({ porte: event.target.value })}
+            options={comTodos(portes, 'Todos os portes')}
+          />
+          <Select
+            id="estado-filtro"
+            label="Estado"
+            value={estado}
+            onChange={(event) => updateFilter({ estado: event.target.value })}
+            options={comTodos(ufs, 'Todos os estados')}
+          />
+          <form className="rsp-field-wrap" onSubmit={aplicarCidade} role="search">
+            <label className="rsp-field" htmlFor="cidade-filtro">
+              <span>Cidade</span>
+              <input
+                id="cidade-filtro"
+                className="rsp-input"
+                value={cidadeInput}
+                onChange={(event) => setCidadeInput(event.target.value)}
+                placeholder="Filtrar por cidade"
+              />
+            </label>
+          </form>
         </div>
+
         <div className="rsp-filter-row" aria-label="Filtrar por urgência">
           <button
             type="button"
@@ -187,8 +241,12 @@ export function PedidoListaPage() {
         </div>
       </div>
 
-      {loading && <div className="rsp-skeleton">Carregando pedidos...</div>}
-      {error && <div className="rsp-empty">{error}</div>}
+      {loading && <Skeleton rotulo="Carregando pedidos…" />}
+      {error && (
+        <div className="rsp-empty" role="alert">
+          {error}
+        </div>
+      )}
       {!loading && !error && pedidos.length === 0 && (
         <div className="rsp-empty">Nenhum pedido encontrado. Tente outro termo ou filtro.</div>
       )}
@@ -207,12 +265,12 @@ export function PedidoListaPage() {
             >
               Página anterior
             </Button>
-            <span>
-              Página {page} de {pedidoPage?.page_info.total_pages ?? 1}
+            <span className="rsp-pagination__status">
+              Página {page} de {totalPages}
             </span>
             <Button
               variant="secondary"
-              disabled={page >= (pedidoPage?.page_info.total_pages ?? 1)}
+              disabled={page >= totalPages}
               onClick={() => updateFilter({ page: page + 1 })}
             >
               Próxima página
@@ -229,31 +287,50 @@ type PedidoCardProps = {
 }
 
 /**
- * Card público de pedido baseado no layout de referência.
+ * Card público de pedido com foto de capa real, localização e atendimentos.
  *
  * @param props - Pedido exibido no feed.
  * @returns Link-card para a rota de detalhe.
  */
 function PedidoCard({ pedido }: PedidoCardProps) {
+  const capa = urlCapa(pedido)
+  const localizacao = rotuloLocalizacao(pedido)
+  const atendimentos = pedido.total_atendimentos
+  const especie = pedido.especie as Especie | null | undefined
+  const porte = pedido.porte as Porte | null | undefined
+
   return (
     <Link className="rsp-pedido-card" to={`/pedidos/${pedido.id}`}>
       <div className="rsp-pedido-card__head">
-        <div className="rsp-pedido-thumb" aria-hidden="true">
-          foto
+        <div className="rsp-pedido-thumb">
+          {capa ? (
+            <img src={capa} alt={`Foto de ${pedido.titulo}`} loading="lazy" />
+          ) : (
+            <span aria-hidden="true">🐾</span>
+          )}
         </div>
         <div className="rsp-pedido-card__body">
           <h2 className="rsp-pedido-card__title">{pedido.titulo}</h2>
           <p className="rsp-pedido-card__meta">
-            {pedido.categoria} · publicado em {new Date(pedido.data_criacao).toLocaleDateString('pt-BR')}
+            {rotuloDe(categorias, pedido.categoria)} · publicado em{' '}
+            {new Date(pedido.data_criacao).toLocaleDateString('pt-BR')}
           </p>
         </div>
       </div>
       <p className="rsp-pedido-card__desc">{pedido.descricao}</p>
       <div className="rsp-pedido-card__footer">
-        <Badge tone={pedido.urgencia === 'alta' ? 'danger' : pedido.urgencia === 'media' ? 'warning' : 'success'}>
-          {urgenciaLabels[pedido.urgencia]}
-        </Badge>
-        {pedido.status !== 'aberto' && <Badge tone="neutral">{pedido.status.replace('_', ' ')}</Badge>}
+        <Badge tone={tomUrgencia(pedido.urgencia)}>{rotuloDe(urgencias, pedido.urgencia)}</Badge>
+        {pedido.status !== 'aberto' && (
+          <Badge tone="neutral">{rotuloDe(statusOpcoes, pedido.status)}</Badge>
+        )}
+        {localizacao && <Badge tone="neutral">{localizacao}</Badge>}
+        {especie && <Badge tone="neutral">{rotuloDe(especies, especie)}</Badge>}
+        {porte && <Badge tone="neutral">{rotuloDe(portes, porte)}</Badge>}
+        {typeof atendimentos === 'number' && atendimentos > 0 && (
+          <Badge tone="success">
+            {atendimentos} {atendimentos === 1 ? 'atendimento' : 'atendimentos'}
+          </Badge>
+        )}
       </div>
     </Link>
   )

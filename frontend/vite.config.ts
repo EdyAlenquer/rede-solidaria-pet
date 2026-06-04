@@ -13,6 +13,12 @@ export default defineConfig({
         target: apiProxyTarget,
         changeOrigin: true,
       },
+      // Imagens de pedidos são servidas pelo backend em /uploads/...; o proxy
+      // permite que carreguem em desenvolvimento sem CORS.
+      '/uploads': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
     },
   },
   test: {

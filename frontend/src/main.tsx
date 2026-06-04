@@ -1,8 +1,11 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { HelmetProvider } from 'react-helmet-async'
 import { BrowserRouter } from 'react-router-dom'
 
 import { App } from './App'
+import { AuthProvider } from './auth/AuthContext'
+import { ToastProvider } from './components/Toast'
 import './styles/global.css'
 
 const rootElement = document.getElementById('root')
@@ -13,8 +16,14 @@ if (!rootElement) {
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <HelmetProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </ToastProvider>
+      </AuthProvider>
+    </HelmetProvider>
   </React.StrictMode>,
 )

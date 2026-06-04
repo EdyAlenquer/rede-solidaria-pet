@@ -1,5 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { HelmetProvider } from 'react-helmet-async'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -20,8 +21,11 @@ const pedidoPage: PedidoPage = {
       categoria: 'transporte',
       urgencia: 'alta',
       status: 'aberto',
-      contato: '11999990000',
       data_criacao: '2026-05-27T12:00:00',
+      cidade: 'São Paulo',
+      estado: 'SP',
+      total_atendimentos: 2,
+      imagens: [{ id: 1, url: '/uploads/gata.jpg', ordem: 0 }],
     },
   ],
   page_info: { page: 1, page_size: 20, total: 1, total_pages: 1 },
@@ -35,15 +39,17 @@ describe('PedidoListaPage', () => {
 
   function renderPage(path = '/pedidos?urgencia=alta&q=gata') {
     render(
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="/pedidos" element={<PedidoListaPage />} />
-        </Routes>
-      </MemoryRouter>,
+      <HelmetProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/pedidos" element={<PedidoListaPage />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>,
     )
   }
 
-  it('carrega pedidos usando filtros da URL e renderiza cards', async () => {
+  it('carrega pedidos usando filtros da URL e renderiza cards com thumbnail e localização', async () => {
     renderPage()
 
     await waitFor(() =>
@@ -54,11 +60,20 @@ describe('PedidoListaPage', () => {
         urgencia: 'alta',
       }),
     )
-    expect(await screen.findByRole('link', { name: /gata precisa de transporte/i })).toHaveAttribute(
-      'href',
-      '/pedidos/7',
-    )
+    const card = await screen.findByRole('link', { name: /gata precisa de transporte/i })
+    expect(card).toHaveAttribute('href', '/pedidos/7')
     expect(screen.getByText('Urgente')).toBeInTheDocument()
+    expect(screen.getByText('São Paulo, SP')).toBeInTheDocument()
+    expect(within(card).getByRole('img')).toHaveAttribute('src', '/uploads/gata.jpg')
+    expect(screen.getByText(/2 atendimentos/i)).toBeInTheDocument()
+  })
+
+  it('mostra esqueletos de carregamento e não a frase "perto de você" sem geolocalização', async () => {
+    renderPage('/pedidos')
+
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    await screen.findByRole('link', { name: /gata precisa de transporte/i })
+    expect(screen.queryByText(/perto de você/i)).not.toBeInTheDocument()
   })
 
   it('reflete busca e urgência na URL antes de recarregar', async () => {
@@ -69,14 +84,15 @@ describe('PedidoListaPage', () => {
     await user.click(screen.getByRole('button', { name: /urgentes/i }))
 
     expect(await screen.findByDisplayValue('ração')).toBeInTheDocument()
-    await waitFor(() => expect(listarPedidos).toHaveBeenLastCalledWith(expect.objectContaining({
-      q: 'ração',
-      urgencia: 'alta',
-    })))
+    await waitFor(() =>
+      expect(listarPedidos).toHaveBeenLastCalledWith(
+        expect.objectContaining({ q: 'ração', urgencia: 'alta' }),
+      ),
+    )
   })
 
-  it('carrega categoria, status e página vindos da URL', async () => {
-    renderPage('/pedidos?categoria=transporte&status=em_andamento&page=2')
+  it('carrega categoria, status, cidade e estado vindos da URL', async () => {
+    renderPage('/pedidos?categoria=transporte&status=em_andamento&cidade=Campinas&estado=SP&page=2')
 
     await waitFor(() =>
       expect(listarPedidos).toHaveBeenCalledWith({
@@ -84,13 +100,17 @@ describe('PedidoListaPage', () => {
         page_size: 20,
         categoria: 'transporte',
         status: 'em_andamento',
+        cidade: 'Campinas',
+        estado: 'SP',
       }),
     )
     expect(await screen.findByLabelText('Categoria')).toHaveValue('transporte')
     expect(screen.getByLabelText('Status')).toHaveValue('em_andamento')
+    expect(screen.getByLabelText('Estado')).toHaveValue('SP')
+    expect(screen.getByLabelText('Cidade')).toHaveValue('Campinas')
   })
 
-  it('reflete categoria, status e paginação na URL antes de recarregar', async () => {
+  it('reflete espécie, porte e paginação na URL antes de recarregar', async () => {
     const user = userEvent.setup()
     vi.mocked(listarPedidos).mockResolvedValue({
       ...pedidoPage,
@@ -98,16 +118,14 @@ describe('PedidoListaPage', () => {
     })
     renderPage('/pedidos')
 
-    await user.selectOptions(await screen.findByLabelText('Categoria'), 'ração')
-    await user.selectOptions(screen.getByLabelText('Status'), 'em_andamento')
+    await user.selectOptions(await screen.findByLabelText('Espécie'), 'gato')
+    await user.selectOptions(screen.getByLabelText('Porte'), 'pequeno')
     await user.click(screen.getByRole('button', { name: /próxima página/i }))
 
     await waitFor(() =>
-      expect(listarPedidos).toHaveBeenLastCalledWith(expect.objectContaining({
-        page: 2,
-        categoria: 'ração',
-        status: 'em_andamento',
-      })),
+      expect(listarPedidos).toHaveBeenLastCalledWith(
+        expect.objectContaining({ page: 2, especie: 'gato', porte: 'pequeno' }),
+      ),
     )
   })
 })

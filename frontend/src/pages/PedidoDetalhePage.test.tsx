@@ -1,109 +1,221 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { HelmetProvider } from 'react-helmet-async'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PedidoDetalhePage } from './PedidoDetalhePage'
 import { criarAtendimento, listarAtendimentos } from '../services/api/atendimentos'
-import { criarDoador } from '../services/api/doadores'
-import { obterPedido } from '../services/api/pedidos'
+import { denunciarPedido } from '../services/api/denuncias'
+import {
+  alterarStatusPedido,
+  excluirPedido,
+  obterPedido,
+  revelarContato,
+} from '../services/api/pedidos'
+import type { Pedido, UsuarioRead } from '../types/api'
 
 vi.mock('../services/api/atendimentos', () => ({
   criarAtendimento: vi.fn(),
   listarAtendimentos: vi.fn(),
 }))
 
-vi.mock('../services/api/doadores', () => ({
-  criarDoador: vi.fn(),
+vi.mock('../services/api/denuncias', () => ({
+  denunciarPedido: vi.fn(),
 }))
 
 vi.mock('../services/api/pedidos', () => ({
   obterPedido: vi.fn(),
+  revelarContato: vi.fn(),
+  alterarStatusPedido: vi.fn(),
+  excluirPedido: vi.fn(),
 }))
 
-const pedido = {
+// O mapa Leaflet não monta em jsdom: mocamos por um marcador estático.
+vi.mock('../components/MapaPedidos', () => ({
+  __esModule: true,
+  default: ({ pontos }: { pontos: { id: number }[] }) => (
+    <div data-testid="mock-mapa">mapa com {pontos.length} ponto(s)</div>
+  ),
+}))
+
+const mostrarMock = vi.fn()
+vi.mock('../components/Toast', () => ({
+  useToast: () => ({ mostrar: mostrarMock }),
+}))
+
+let authState: { usuario: UsuarioRead | null; isAuthenticated: boolean }
+vi.mock('../auth/AuthContext', () => ({
+  useAuth: () => authState,
+}))
+
+const pedidoBase: Pedido = {
   id: 7,
   titulo: 'Gata precisa de transporte',
   descricao: 'Precisa ir até a clínica parceira para consulta.',
   categoria: 'transporte',
-  urgencia: 'alta' as const,
-  status: 'aberto' as const,
-  contato: '11999990000',
-  data_criacao: '2026-05-27T12:00:00',
+  urgencia: 'alta',
+  status: 'aberto',
+  data_criacao: '2026-05-27T12:00:00Z',
+  cidade: 'São Paulo',
+  estado: 'SP',
+  especie: 'gato',
+  porte: 'pequeno',
+  latitude: -23.5,
+  longitude: -46.6,
+  imagens: [{ id: 1, url: '/uploads/gata.jpg', ordem: 0 }],
 }
+
+const autor: UsuarioRead = { id: 1, nome: 'Ana Autora', email: 'ana@x.com', papel: 'protetor' }
 
 describe('PedidoDetalhePage', () => {
   beforeEach(() => {
-    vi.mocked(obterPedido).mockResolvedValue(pedido)
+    vi.clearAllMocks()
+    authState = { usuario: null, isAuthenticated: false }
+    vi.mocked(obterPedido).mockResolvedValue(pedidoBase)
     vi.mocked(listarAtendimentos).mockResolvedValue([
       {
         id: 3,
         pedido_id: 7,
         tipo_ajuda: 'transporte',
         observacao: 'Posso levar amanhã cedo.',
-        data_contato: '2026-05-27T13:00:00',
+        data_contato: '2026-05-27T13:00:00Z',
       },
     ])
-    vi.mocked(criarDoador).mockResolvedValue({
-      id: 11,
-      nome: 'Maria',
-      telefone: '11988887777',
-      email: null,
+    vi.mocked(revelarContato).mockResolvedValue({
+      contato: '11999990000',
+      whatsapp: 'https://wa.me/5511999990000',
     })
     vi.mocked(criarAtendimento).mockResolvedValue({
       id: 12,
       pedido_id: 7,
-      tipo_ajuda: 'ração',
+      tipo_ajuda: 'racao',
       observacao: 'Consigo entregar hoje.',
-      data_contato: '2026-05-27T14:00:00',
+      data_contato: '2026-05-27T14:00:00Z',
     })
+    vi.mocked(alterarStatusPedido).mockResolvedValue({ ...pedidoBase, status: 'concluido' })
+    vi.mocked(excluirPedido).mockResolvedValue(undefined)
+    vi.mocked(denunciarPedido).mockResolvedValue(undefined)
   })
 
-  function renderPage() {
+  function renderPage(initialEntries = ['/pedidos/7']) {
     render(
-      <MemoryRouter initialEntries={['/pedidos/7']}>
-        <Routes>
-          <Route path="/pedidos/:pedidoId" element={<PedidoDetalhePage />} />
-        </Routes>
-      </MemoryRouter>,
+      <HelmetProvider>
+        <MemoryRouter initialEntries={initialEntries}>
+          <Routes>
+            <Route path="/pedidos/:pedidoId" element={<PedidoDetalhePage />} />
+            <Route path="/pedidos/:pedidoId/editar" element={<div>Tela de edição</div>} />
+            <Route path="/entrar" element={<div>Tela de login</div>} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>,
     )
   }
 
-  it('carrega detalhe e só mostra contato após clique explícito', async () => {
-    const user = userEvent.setup()
+  it('mostra galeria real, badges, mini-mapa e histórico de atendimentos', async () => {
     renderPage()
 
-    expect(await screen.findByRole('heading', { name: pedido.titulo })).toBeInTheDocument()
-    expect(screen.queryByText('11999990000')).not.toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: /mostrar contato/i }))
-
-    expect(screen.getByText('11999990000')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: pedidoBase.titulo })).toBeInTheDocument()
+    const figura = screen.getByRole('img', { name: /gata precisa de transporte/i })
+    expect(figura).toHaveAttribute('src', '/uploads/gata.jpg')
+    expect(figura).toHaveAttribute('loading', 'lazy')
+    const caracteristicas = screen.getByRole('group', { name: /características do pedido/i })
+    expect(within(caracteristicas).getByText('Transporte')).toBeInTheDocument()
+    expect(within(caracteristicas).getByText('Urgente')).toBeInTheDocument()
+    expect(within(caracteristicas).getByText('Gato')).toBeInTheDocument()
+    expect(screen.getByTestId('mock-mapa')).toBeInTheDocument()
     expect(screen.getByText(/Posso levar amanhã cedo/i)).toBeInTheDocument()
   })
 
-  it('cria doador e atendimento pelo fluxo Quero ajudar', async () => {
+  it('exige login para revelar contato quando anônimo', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: pedidoBase.titulo })
+
+    expect(
+      screen.getByRole('link', { name: /entrar para ver o contato/i }),
+    ).toHaveAttribute('href', '/entrar')
+    expect(screen.queryByRole('button', { name: /revelar contato/i })).not.toBeInTheDocument()
+  })
+
+  it('revela contato e link de WhatsApp quando autenticado', async () => {
+    authState = { usuario: { ...autor, id: 99 }, isAuthenticated: true }
     const user = userEvent.setup()
     renderPage()
+    await screen.findByRole('heading', { name: pedidoBase.titulo })
 
-    await user.click(await screen.findByRole('button', { name: /quero ajudar/i }))
-    await user.type(screen.getByLabelText('Seu nome'), 'Maria')
-    await user.type(screen.getByLabelText('Telefone ou WhatsApp'), '11988887777')
-    await user.selectOptions(screen.getByLabelText('Tipo de ajuda'), 'ração')
-    await user.type(screen.getByLabelText('Observação'), 'Consigo entregar hoje.')
+    expect(screen.queryByText('11999990000')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /revelar contato/i }))
+
+    expect(await screen.findByText('11999990000')).toBeInTheDocument()
+    expect(revelarContato).toHaveBeenCalledWith(7)
+    expect(screen.getByRole('link', { name: /whatsapp/i })).toHaveAttribute(
+      'href',
+      'https://wa.me/5511999990000',
+    )
+  })
+
+  it('envia atendimento sem doador_id no fluxo "Quero ajudar" autenticado', async () => {
+    authState = { usuario: { ...autor, id: 99 }, isAuthenticated: true }
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByRole('heading', { name: pedidoBase.titulo })
+
+    await user.click(screen.getByRole('button', { name: /quero ajudar/i }))
+    await user.selectOptions(screen.getByLabelText('Tipo de ajuda'), 'racao')
+    await user.type(screen.getByLabelText(/observação/i), 'Consigo entregar hoje.')
     await user.click(screen.getByRole('button', { name: /confirmar ajuda/i }))
 
     await waitFor(() =>
-      expect(criarDoador).toHaveBeenCalledWith({
-        nome: 'Maria',
-        telefone: '11988887777',
+      expect(criarAtendimento).toHaveBeenCalledWith(7, {
+        tipo_ajuda: 'racao',
+        observacao: 'Consigo entregar hoje.',
       }),
     )
-    expect(criarAtendimento).toHaveBeenCalledWith(7, {
-      doador_id: 11,
-      tipo_ajuda: 'ração',
-      observacao: 'Consigo entregar hoje.',
-    })
-    expect(await screen.findByText('Ajuda registrada. Obrigado por apoiar este pedido.')).toBeInTheDocument()
+  })
+
+  it('mostra CTA de login no lugar do formulário de ajuda quando anônimo', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: pedidoBase.titulo })
+
+    expect(screen.getByRole('link', { name: /entrar para ajudar/i })).toHaveAttribute(
+      'href',
+      '/entrar',
+    )
+    expect(screen.queryByRole('button', { name: /quero ajudar/i })).not.toBeInTheDocument()
+  })
+
+  it('exibe ações de autor (editar/excluir) e exclui após confirmação', async () => {
+    authState = { usuario: autor, isAuthenticated: true }
+    vi.mocked(obterPedido).mockResolvedValue({ ...pedidoBase, autor_id: 1 } as Pedido)
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByRole('heading', { name: pedidoBase.titulo })
+
+    expect(screen.getByRole('link', { name: /editar/i })).toHaveAttribute(
+      'href',
+      '/pedidos/7/editar',
+    )
+
+    await user.click(screen.getByRole('button', { name: /excluir/i }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: /confirmar exclusão/i }))
+
+    await waitFor(() => expect(excluirPedido).toHaveBeenCalledWith(7))
+  })
+
+  it('denuncia o pedido pelo modal quando autenticado', async () => {
+    authState = { usuario: { ...autor, id: 99 }, isAuthenticated: true }
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByRole('heading', { name: pedidoBase.titulo })
+
+    await user.click(screen.getByRole('button', { name: /denunciar/i }))
+    const dialog = await screen.findByRole('dialog')
+    await user.selectOptions(within(dialog).getByLabelText(/motivo/i), 'golpe')
+    await user.click(within(dialog).getByRole('button', { name: /enviar denúncia/i }))
+
+    await waitFor(() =>
+      expect(denunciarPedido).toHaveBeenCalledWith(7, expect.objectContaining({ motivo: 'golpe' })),
+    )
   })
 })
