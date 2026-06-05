@@ -49,7 +49,7 @@ def create_app() -> FastAPI:
 
     application = FastAPI(
         title="Rede Solidária Pet API",
-        version="0.1.0",
+        version="0.2.0",
         description="API da plataforma Rede Solidária Pet.",
         **docs_kwargs,
     )

@@ -1,6 +1,6 @@
 {
   "name": "rede-solidaria-pet-frontend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build --config vite.config.ts",
     "preview": "vite preview --config vite.config.ts",
     "test": "vitest run --config vite.config.ts",
+    "test:coverage": "vitest run --coverage --config vite.config.ts",
     "test:watch": "vitest --config vite.config.ts",
     "test:e2e": "playwright test",
     "qa:lighthouse": "node scripts/run-lighthouse.mjs",
@@ -35,6 +36,7 @@
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "@vitejs/plugin-react": "^4.3.0",
+    "@vitest/coverage-v8": "^1.6.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.0",
     "eslint-plugin-react-hooks": "^4.6.0",

@@ -37,4 +37,4 @@ jobs:
         run: black --check .
 
       - name: Pytest
-        run: pytest -v
+        run: pytest --cov=app --cov-report=term-missing --cov-fail-under=94

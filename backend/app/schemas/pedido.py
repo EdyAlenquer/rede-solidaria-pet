@@ -155,6 +155,10 @@ class PedidoContato(BaseModel):
 class PedidoRead(PedidoBase):
     """Schema de leitura — adiciona campos servidos pelo backend.
 
+    `autor_id` expõe apenas o id do usuário autor (nunca dados pessoais),
+    permitindo ao frontend decidir se o usuário atual é o autor e mostrar as
+    ações de editar/excluir. É `None` para pedidos antigos sem autor.
+
     `data_criacao` é normalizada para UTC-aware: o SQLite devolve timestamps
     sem offset, então datetimes ingênuos são interpretados como UTC para
     garantir serialização ISO-8601 com offset (`+00:00`).
@@ -166,6 +170,7 @@ class PedidoRead(PedidoBase):
     status: StatusPedidoEnum
     oculto: bool
     consentimento_aceito: bool
+    autor_id: int | None = None
     data_criacao: datetime
     imagens: list[ImagemRead] = Field(default_factory=list)
 

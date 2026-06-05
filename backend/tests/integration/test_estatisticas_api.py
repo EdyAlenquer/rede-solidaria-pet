@@ -34,6 +34,14 @@ def test_estatisticas_eh_publico_sem_auth(api_client: TestClient) -> None:
     assert r.status_code == 200
 
 
+def test_estatisticas_tem_cache_control_curto(api_client: TestClient) -> None:
+    """GET /api/v1/estatisticas (público) envia Cache-Control curto e compartilhável."""
+    r = api_client.get("/api/v1/estatisticas")
+
+    assert r.status_code == 200
+    assert r.headers["cache-control"] == "public, max-age=30"
+
+
 def test_estatisticas_conta_pedidos_status_cidades_e_atendimentos(
     api_client: TestClient, auth_headers: dict, auth_headers_outro: dict
 ) -> None:

@@ -1,0 +1,25 @@
+# Configuração do gitleaks para a Rede Solidária Pet.
+#
+# Estende o conjunto de regras padrão e adiciona uma allowlist para evitar
+# falsos-positivos óbvios: arquivos de exemplo (.env.example) e segredos de
+# desenvolvimento que, por design, não são sensíveis.
+
+title = "Rede Solidária Pet — gitleaks"
+
+[extend]
+# Reaproveita todas as regras embutidas do gitleaks.
+useDefault = true
+
+[allowlist]
+description = "Falsos-positivos conhecidos (exemplos e segredos de desenvolvimento)."
+
+# Não escaneia arquivos de exemplo: eles documentam variáveis e nunca contêm
+# segredos reais.
+paths = [
+  '''.*\.env\.example$''',
+]
+
+# Segredos de desenvolvimento explicitamente marcados como não sensíveis.
+regexes = [
+  '''dev-insecure-troque-em-producao''',
+]

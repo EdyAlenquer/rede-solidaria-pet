@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.http_cache import CACHE_CONTROL_PUBLICO
 from app.core.notifications import link_whatsapp
 from app.core.rate_limit import limite_contato, limite_criacao, limiter
 from app.database import get_db
@@ -87,6 +88,7 @@ def criar_pedido(
     summary="Lista pedidos com filtros e paginação",
 )
 def listar_pedidos(
+    response: Response,
     status_filter: StatusPedidoEnum | None = Query(default=None, alias="status"),
     urgencia: UrgenciaEnum | None = Query(default=None),
     categoria: CategoriaEnum | None = Query(default=None),
@@ -103,7 +105,12 @@ def listar_pedidos(
 ) -> PedidoPage:
     """GET /api/v1/pedidos — lista paginada com filtros (RF03, RF04).
 
+    A listagem é pública e majoritariamente compartilhada entre visitantes, então
+    recebe um `Cache-Control` curto (`public, max-age=30`) para aliviar o backend
+    sem servir dados muito desatualizados. Rotas autenticadas não usam esse header.
+
     Args:
+        response: resposta corrente, usada para definir o `Cache-Control`.
         status_filter: filtra por status (query `status`).
         urgencia: filtra por urgência.
         categoria: filtra por categoria.
@@ -121,6 +128,7 @@ def listar_pedidos(
     Returns:
         Página de pedidos.
     """
+    response.headers["Cache-Control"] = CACHE_CONTROL_PUBLICO
     estado_uf = estado.upper() if estado else None
     repo = PedidoRepository(db)
     resultado = repo.list_paginated(

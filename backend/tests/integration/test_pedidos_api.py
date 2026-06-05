@@ -239,6 +239,53 @@ def test_get_pedido_por_id_retorna_detalhe_sem_contato(
     assert "contato" not in body
 
 
+def test_get_pedido_por_id_inclui_autor_id(
+    api_client: TestClient, auth_headers: dict, usuario_autenticado: dict
+) -> None:
+    """O detalhe público traz `autor_id` para o frontend decidir editar/excluir."""
+    criado = api_client.post("/api/v1/pedidos", json=_VALID_PAYLOAD, headers=auth_headers).json()
+
+    body = api_client.get(f"/api/v1/pedidos/{criado['id']}").json()
+
+    assert body["autor_id"] == usuario_autenticado["id"]
+
+
+def test_listagem_publica_inclui_autor_id(
+    api_client: TestClient, auth_headers: dict, usuario_autenticado: dict
+) -> None:
+    """Os itens da listagem pública trazem `autor_id` (apenas o id, sem PII)."""
+    api_client.post("/api/v1/pedidos", json=_VALID_PAYLOAD, headers=auth_headers)
+
+    body = api_client.get("/api/v1/pedidos").json()
+
+    assert body["items"]
+    assert body["items"][0]["autor_id"] == usuario_autenticado["id"]
+
+
+def test_listagem_publica_tem_cache_control_curto(
+    api_client: TestClient, auth_headers: dict
+) -> None:
+    """GET /api/v1/pedidos (público) envia Cache-Control curto e compartilhável."""
+    api_client.post("/api/v1/pedidos", json=_VALID_PAYLOAD, headers=auth_headers)
+
+    r = api_client.get("/api/v1/pedidos")
+
+    assert r.status_code == 200
+    assert r.headers["cache-control"] == "public, max-age=30"
+
+
+def test_rota_autenticada_nao_tem_cache_control_publico(
+    api_client: TestClient, auth_headers: dict
+) -> None:
+    """Rotas autenticadas (ex.: revelar contato) não recebem Cache-Control público."""
+    criado = api_client.post("/api/v1/pedidos", json=_VALID_PAYLOAD, headers=auth_headers).json()
+
+    r = api_client.get(f"/api/v1/pedidos/{criado['id']}/contato", headers=auth_headers)
+
+    assert r.status_code == 200
+    assert r.headers.get("cache-control") != "public, max-age=30"
+
+
 def test_listagem_publica_nao_expoe_contato(api_client: TestClient, auth_headers: dict) -> None:
     """GET /api/v1/pedidos (lista pública) não traz o campo contato nos itens."""
     api_client.post("/api/v1/pedidos", json=_VALID_PAYLOAD, headers=auth_headers)

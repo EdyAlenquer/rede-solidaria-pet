@@ -123,7 +123,8 @@ describe('PedidoDetalhePage', () => {
     expect(within(caracteristicas).getByText('Transporte')).toBeInTheDocument()
     expect(within(caracteristicas).getByText('Urgente')).toBeInTheDocument()
     expect(within(caracteristicas).getByText('Gato')).toBeInTheDocument()
-    expect(screen.getByTestId('mock-mapa')).toBeInTheDocument()
+    // O mapa é carregado via React.lazy/Suspense; aguarde a resolução.
+    expect(await screen.findByTestId('mock-mapa')).toBeInTheDocument()
     expect(screen.getByText(/Posso levar amanhã cedo/i)).toBeInTheDocument()
   })
 

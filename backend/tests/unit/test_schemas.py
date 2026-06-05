@@ -183,3 +183,24 @@ def test_pedido_read_inclui_imagens_default_vazia() -> None:
     )
     assert pedido.imagens == []
     assert "contato" not in pedido.model_dump()
+
+
+def test_pedido_read_inclui_autor_id_default_none() -> None:
+    """PedidoRead expõe `autor_id` (default None) sem expor PII do autor."""
+    from app.schemas import PedidoRead
+
+    pedido = PedidoRead(
+        id=1,
+        titulo="Cãozinho ferido",
+        descricao="Encontrado na rua X, precisa de atendimento veterinário.",
+        categoria="resgate",
+        urgencia=UrgenciaEnum.ALTA,
+        cidade="São Paulo",
+        estado="SP",
+        consentimento_aceito=True,
+        status=StatusPedidoEnum.ABERTO,
+        oculto=False,
+        data_criacao="2026-06-01T00:00:00+00:00",
+    )
+    assert pedido.autor_id is None
+    assert "autor_id" in pedido.model_dump()
