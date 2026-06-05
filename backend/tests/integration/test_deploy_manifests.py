@@ -50,13 +50,19 @@ def test_render_yaml_gera_secret_key() -> None:
     assert "value" not in secret
 
 
-def test_backend_dockerfile_serve_servidor_sem_migrar_no_boot() -> None:
-    """Dockerfile serve apenas o Uvicorn (sem migrar no boot) como usuário não-root."""
+def test_backend_dockerfile_migra_no_start_e_serve() -> None:
+    """Dockerfile aplica migrações no start e serve o Uvicorn como usuário não-root.
+
+    O `preDeployCommand` do Render só roda em planos pagos; no free tier as
+    migrações precisam rodar no start do container (uma vez, antes do Uvicorn
+    forkar os workers — sem corrida em instância única). É idempotente: em
+    planos pagos o preDeploy já as aplicou e este passo vira no-op.
+    """
     dockerfile = (ROOT / "backend/Dockerfile").read_text(encoding="utf-8")
 
     assert "uvicorn app.main:app" in dockerfile
-    # A migração não roda no boot do container — fica no passo de deploy.
-    assert "alembic upgrade head" not in dockerfile
+    # Migração roda no start (necessária no free tier, que ignora preDeployCommand).
+    assert "alembic upgrade head" in dockerfile
     # Workers parametrizados por WEB_CONCURRENCY.
     assert "WEB_CONCURRENCY" in dockerfile
     # Hardening: usuário não-root e healthcheck de readiness.

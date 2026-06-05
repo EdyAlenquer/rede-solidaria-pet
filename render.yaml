@@ -9,8 +9,11 @@ services:
     # (SELECT 1) antes de o Render rotear tráfego para a instância.
     healthCheckPath: /ready
     autoDeploy: true
-    # Aplica as migrações UMA vez antes de promover a nova versão, mantendo a
-    # migração fora do boot do container (que apenas serve o servidor).
+    # Aplica as migrações UMA vez antes de promover a nova versão. ATENÇÃO:
+    # o preDeployCommand só roda em planos PAGOS; no free tier ele é ignorado,
+    # por isso o Dockerfile também aplica `alembic upgrade head` no start do
+    # container (idempotente). Ao migrar para um plano pago, este passo passa a
+    # rodar as migrações antes do deploy e o start vira no-op.
     preDeployCommand: alembic upgrade head
     envVars:
       - key: APP_ENV

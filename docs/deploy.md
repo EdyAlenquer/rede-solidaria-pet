@@ -96,12 +96,16 @@ Serviços locais:
 
 ## Migrações em pré-deploy
 
-As migrações Alembic (`0001`–`0007`) **rodam fora do boot do container**: o `Dockerfile`
-apenas serve o Uvicorn, e a migração é aplicada uma única vez antes de a nova versão
-receber tráfego.
+As migrações Alembic (`0001`–`0007`) são aplicadas **antes de o servidor atender
+requisições**. Onde isso acontece depende do plano:
 
-- **Render:** `preDeployCommand: alembic upgrade head` (já declarado em `render.yaml`).
-  Roda contra o `DATABASE_URL` da release antes de promover a instância.
+- **Render free tier:** o `preDeployCommand` **não roda em planos gratuitos**, então o
+  `Dockerfile` aplica `alembic upgrade head` no **start do container** (uma vez, antes do
+  Uvicorn forkar os workers — sem corrida em instância única).
+- **Render plano pago:** `preDeployCommand: alembic upgrade head` (declarado em
+  `render.yaml`) roda contra o `DATABASE_URL` da release antes de promover a instância; o
+  `alembic upgrade head` do start vira no-op (idempotente). Em escala (múltiplas
+  instâncias), prefira o preDeploy para evitar migrações concorrentes.
 - **Docker Compose / outro host:** rode a migração explicitamente antes de subir o
   servidor:
 
