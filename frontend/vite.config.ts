@@ -13,6 +13,12 @@ export default defineConfig({
         target: apiProxyTarget,
         changeOrigin: true,
       },
+      // Imagens de pedidos são servidas pelo backend em /uploads/...; o proxy
+      // permite que carreguem em desenvolvimento sem CORS.
+      '/uploads': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
     },
   },
   test: {
@@ -21,5 +27,24 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     exclude: ['node_modules/**', 'dist/**', 'tests/e2e/**'],
     css: false,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/test/**',
+        'src/main.tsx',
+        'src/vite-env.d.ts',
+        'src/**/*.d.ts',
+      ],
+      // Limiares modestos: garantem uma rede de segurança sem flakiness.
+      thresholds: {
+        statements: 50,
+        branches: 50,
+        functions: 50,
+        lines: 50,
+      },
+    },
   },
 })

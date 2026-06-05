@@ -5,8 +5,13 @@ services:
     runtime: docker
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
-    healthCheckPath: /health
+    # Readiness (/ready) confirma que o app responde E que o banco está de pé
+    # (SELECT 1) antes de o Render rotear tráfego para a instância.
+    healthCheckPath: /ready
     autoDeploy: true
+    # Aplica as migrações UMA vez antes de promover a nova versão, mantendo a
+    # migração fora do boot do container (que apenas serve o servidor).
+    preDeployCommand: alembic upgrade head
     envVars:
       - key: APP_ENV
         value: production
@@ -18,6 +23,37 @@ services:
           property: connectionString
       - key: CORS_ORIGINS
         value: https://frontend-edyalenquers-projects.vercel.app
+      # Chave de assinatura JWT gerada pelo Render (nunca versionada). Em
+      # produção o app recusa subir com a SECRET_KEY default insegura.
+      - key: SECRET_KEY
+        generateValue: true
+      # Workers do Uvicorn; ajuste conforme as CPUs do plano. Default 2 no
+      # Dockerfile já é razoável para o free tier.
+      - key: WEB_CONCURRENCY
+        value: "2"
+      # --- Opcionais (descomente/configure conforme necessário) ---
+      # Notificações por e-mail (default "log", que apenas registra no logging):
+      #   NOTIFIER_BACKEND=smtp e os SMTP_* abaixo habilitam envio real.
+      # - key: NOTIFIER_BACKEND
+      #   value: smtp
+      # - key: SMTP_HOST
+      #   sync: false
+      # - key: SMTP_PORT
+      #   value: "587"
+      # - key: SMTP_USER
+      #   sync: false
+      # - key: SMTP_PASSWORD
+      #   sync: false
+      # - key: SMTP_FROM
+      #   sync: false
+      # Upload de imagens (storage local por padrão; em produção troque por um
+      # object storage e ajuste UPLOAD_DIR/PUBLIC_UPLOAD_PATH):
+      # - key: UPLOAD_DIR
+      #   value: uploads
+      # - key: PUBLIC_UPLOAD_PATH
+      #   value: /uploads
+      # - key: MAX_UPLOAD_BYTES
+      #   value: "5242880"
 
 databases:
   - name: rede-solidaria-pet-db

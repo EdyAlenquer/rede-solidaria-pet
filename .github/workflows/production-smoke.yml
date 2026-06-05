@@ -11,6 +11,10 @@ on:
         description: URL pública HTTPS do backend
         required: true
         type: string
+  schedule:
+    # A cada 30 minutos: monitora a saúde das URLs públicas. Em falha, o GitHub
+    # notifica o dono do repositório por padrão.
+    - cron: '*/30 * * * *'
 
 jobs:
   smoke:
@@ -25,6 +29,14 @@ jobs:
 
       - name: Smoke public URLs
         env:
-          FRONTEND_PUBLIC_URL: ${{ inputs.frontend_url }}
-          BACKEND_PUBLIC_URL: ${{ inputs.backend_url }}
+          # No dispatch manual usa os inputs; no agendamento usa as variáveis do
+          # repositório (Settings > Variables), com defaults de produção.
+          FRONTEND_PUBLIC_URL: >-
+            ${{ inputs.frontend_url
+              || vars.FRONTEND_PUBLIC_URL
+              || 'https://frontend-edyalenquers-projects.vercel.app' }}
+          BACKEND_PUBLIC_URL: >-
+            ${{ inputs.backend_url
+              || vars.BACKEND_PUBLIC_URL
+              || 'https://rede-solidaria-pet-api.onrender.com' }}
         run: node scripts/smoke-production.mjs

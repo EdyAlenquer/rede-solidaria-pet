@@ -19,7 +19,30 @@ class DoadorBase(BaseModel):
 
 
 class DoadorCreate(DoadorBase):
-    """Payload para criação de doador."""
+    """Payload para criação de doador.
+
+    Exige o aceite explícito do termo de consentimento LGPD
+    (`consentimento_aceito=True`).
+    """
+
+    consentimento_aceito: bool = False
+    consentimento_versao: str | None = Field(default=None, max_length=20)
+
+    @model_validator(mode="after")
+    def _exige_consentimento(self) -> "DoadorCreate":
+        """Garante que o termo de consentimento foi aceito.
+
+        Returns:
+            A própria instância validada.
+
+        Raises:
+            ValueError: se `consentimento_aceito` não for True.
+        """
+        if not self.consentimento_aceito:
+            raise ValueError(
+                "É necessário aceitar o termo de consentimento para cadastrar o doador."
+            )
+        return self
 
 
 class DoadorUpdate(BaseModel):
@@ -31,7 +54,11 @@ class DoadorUpdate(BaseModel):
 
 
 class DoadorRead(BaseModel):
-    """Schema de leitura — usado internamente; em rotas públicas usar `DoadorPublic`."""
+    """Schema de leitura administrativo — expõe o contato completo do doador.
+
+    Servido apenas em rotas restritas a administradores; em contextos públicos
+    use `DoadorPublic`, que omite telefone e email.
+    """
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -39,3 +66,12 @@ class DoadorRead(BaseModel):
     nome: str
     telefone: str | None
     email: EmailStr | None
+
+
+class DoadorPublic(BaseModel):
+    """Schema público de doador — expõe apenas id e nome, sem contato."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    nome: str

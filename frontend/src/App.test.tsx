@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { HelmetProvider } from 'react-helmet-async'
 import { MemoryRouter } from 'react-router-dom'
 
 import { App } from './App'
+import { AuthProvider } from './auth/AuthContext'
+import { ToastProvider } from './components/Toast'
 
 vi.mock('./services/api/pedidos', () => ({
   listarPedidos: vi.fn(() => new Promise(() => undefined)),
@@ -13,12 +16,24 @@ vi.mock('./services/api/atendimentos', () => ({
   listarAtendimentos: vi.fn(() => new Promise(() => undefined)),
 }))
 
+vi.mock('./services/api/auth', () => ({
+  login: vi.fn(),
+  me: vi.fn(),
+  registrar: vi.fn(),
+}))
+
 describe('App', () => {
   function renderAt(path: string) {
     render(
-      <MemoryRouter initialEntries={[path]}>
-        <App />
-      </MemoryRouter>,
+      <HelmetProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <MemoryRouter initialEntries={[path]}>
+              <App />
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthProvider>
+      </HelmetProvider>,
     )
   }
 
@@ -26,7 +41,10 @@ describe('App', () => {
     renderAt('/')
 
     expect(screen.getByRole('banner')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /bem-vindo/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /encontre ajuda para um animal/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /ver pedidos/i })).toHaveAttribute('href', '/pedidos')
+    expect(screen.getByRole('link', { name: /cadastrar pedido/i })).toHaveAttribute('href', '/pedidos/novo')
+    expect(screen.queryByRole('link', { name: /componentes/i })).not.toBeInTheDocument()
   })
 
   it('renderiza a rota de lista de pedidos', () => {
@@ -35,10 +53,12 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: /pedidos da comunidade/i })).toBeInTheDocument()
   })
 
-  it('renderiza a rota de novo pedido', () => {
+  it('redireciona a rota protegida de novo pedido para o login quando anônimo', async () => {
     renderAt('/pedidos/novo')
 
-    expect(screen.getByRole('heading', { name: /novo pedido/i })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: /entrar/i, level: 1 }),
+    ).toBeInTheDocument()
   })
 
   it('renderiza a rota de detalhe do pedido', () => {

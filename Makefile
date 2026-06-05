@@ -1,4 +1,4 @@
-.PHONY: help install-backend install-frontend dev dev-backend dev-frontend test test-backend test-frontend lint lint-backend lint-frontend
+.PHONY: help install-backend install-frontend dev dev-backend dev-frontend test test-backend test-frontend lint lint-backend lint-frontend seed
 
 help:
 	@echo "Targets disponíveis:"
@@ -10,6 +10,7 @@ help:
 	@echo "  test-frontend     - executa vitest"
 	@echo "  dev               - sobe backend e frontend simultaneamente"
 	@echo "  lint              - executa lint em backend e frontend"
+	@echo "  seed              - popula dados de exemplo (idempotente)"
 
 install-backend:
 	cd backend && pip install -e ".[dev]"
@@ -34,6 +35,9 @@ lint-backend:
 
 lint-frontend:
 	cd frontend && npm run lint
+
+seed:
+	cd backend && ./.venv/bin/python -m app.seed
 
 dev: dev-backend dev-frontend
 lint: lint-backend lint-frontend

@@ -22,7 +22,7 @@ def test_render_yaml_define_backend_e_postgres() -> None:
     assert service["runtime"] == "docker"
     assert service["dockerfilePath"] == "./backend/Dockerfile"
     assert "dockerCommand" not in service
-    assert service["healthCheckPath"] == "/health"
+    assert service["healthCheckPath"] == "/ready"
     assert database["plan"] == "free"
     assert database["databaseName"] == "rede_solidaria_pet"
     assert any(env["key"] == "DATABASE_URL" for env in service["envVars"])
@@ -32,13 +32,48 @@ def test_render_yaml_define_backend_e_postgres() -> None:
     } in service["envVars"]
 
 
-def test_backend_dockerfile_roda_migracoes_antes_do_servidor() -> None:
-    """Dockerfile inicia aplicando migrações antes do Uvicorn."""
+def test_render_yaml_aplica_migracoes_em_predeploy() -> None:
+    """As migrações rodam no `preDeployCommand`, fora do boot do container."""
+    manifest = yaml.safe_load((ROOT / "render.yaml").read_text(encoding="utf-8"))
+    service = manifest["services"][0]
+
+    assert "alembic upgrade head" in service["preDeployCommand"]
+
+
+def test_render_yaml_gera_secret_key() -> None:
+    """`render.yaml` gera uma SECRET_KEY própria no Render (sem hardcode)."""
+    manifest = yaml.safe_load((ROOT / "render.yaml").read_text(encoding="utf-8"))
+    service = manifest["services"][0]
+
+    secret = next(env for env in service["envVars"] if env["key"] == "SECRET_KEY")
+    assert secret.get("generateValue") is True
+    assert "value" not in secret
+
+
+def test_backend_dockerfile_serve_servidor_sem_migrar_no_boot() -> None:
+    """Dockerfile serve apenas o Uvicorn (sem migrar no boot) como usuário não-root."""
     dockerfile = (ROOT / "backend/Dockerfile").read_text(encoding="utf-8")
 
-    assert 'CMD ["sh", "-c",' in dockerfile
-    assert "alembic upgrade head" in dockerfile
     assert "uvicorn app.main:app" in dockerfile
+    # A migração não roda no boot do container — fica no passo de deploy.
+    assert "alembic upgrade head" not in dockerfile
+    # Workers parametrizados por WEB_CONCURRENCY.
+    assert "WEB_CONCURRENCY" in dockerfile
+    # Hardening: usuário não-root e healthcheck de readiness.
+    assert "USER appuser" in dockerfile
+    assert "HEALTHCHECK" in dockerfile
+    assert "/ready" in dockerfile
+
+
+def test_compose_backend_tem_healthcheck_de_readiness() -> None:
+    """O serviço backend do compose declara healthcheck batendo em /ready."""
+    manifest = yaml.safe_load((ROOT / "compose.yml").read_text(encoding="utf-8"))
+    backend = manifest["services"]["backend"]
+
+    assert "healthcheck" in backend
+    assert "/ready" in " ".join(backend["healthcheck"]["test"])
+    # A migração continua sendo um passo explícito no compose (ok em local).
+    assert "alembic upgrade head" in backend["command"]
 
 
 def test_vercel_json_define_build_vite_e_rewrites_spa() -> None:
