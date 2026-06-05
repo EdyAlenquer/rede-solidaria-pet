@@ -139,6 +139,10 @@ def upgrade() -> None:
         "RESGATE",
         name="categoria_enum",
     )
+    # No Postgres o `ALTER COLUMN ... TYPE categoria_enum` exige que o tipo já
+    # exista — `alter_column` NÃO o cria automaticamente (ao contrário de
+    # `add_column`). Criamos o tipo aqui; em SQLite (enum não-nativo) é no-op.
+    categoria_enum.create(op.get_bind(), checkfirst=True)
 
     with op.batch_alter_table("pedidos", schema=None) as batch_op:
         batch_op.add_column(
@@ -187,9 +191,13 @@ def downgrade() -> None:
             ),
             type_=sa.VARCHAR(length=60),
             existing_nullable=False,
+            postgresql_using="categoria::text",
         )
         batch_op.drop_column("deleted_at")
         batch_op.drop_column("updated_at")
+
+    # Remove o tipo enum no Postgres após a coluna voltar a VARCHAR (no-op no SQLite).
+    sa.Enum(name="categoria_enum").drop(op.get_bind(), checkfirst=True)
 
     with op.batch_alter_table("doadores", schema=None) as batch_op:
         batch_op.drop_constraint("ck_doadores_contato_obrigatorio", type_="check")

@@ -6,7 +6,7 @@ via ``UniqueConstraint(pedido_id, doador_id)`` na tabela ``atendimentos``.
 A constraint é criada com ``batch_alter_table`` para compatibilidade com o
 SQLite, que não suporta ``ALTER TABLE ... ADD CONSTRAINT``.
 
-Revision ID: 0006_atendimento_unico_por_doador
+Revision ID: 0006_atend_unico_doador
 Revises: 0005_autenticacao_usuarios
 Create Date: 2026-06-02 22:10:00.000000
 
@@ -17,7 +17,7 @@ from collections.abc import Sequence
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "0006_atendimento_unico_por_doador"
+revision: str = "0006_atend_unico_doador"
 down_revision: str | None = "0005_autenticacao_usuarios"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
