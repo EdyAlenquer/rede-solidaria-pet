@@ -52,7 +52,7 @@ def upgrade() -> None:
         sa.Column(
             "consentimento_aceito",
             sa.Boolean(),
-            server_default=sa.text("0"),
+            server_default=sa.false(),
             nullable=False,
         ),
         sa.Column("consentimento_versao", sa.String(length=20), nullable=True),

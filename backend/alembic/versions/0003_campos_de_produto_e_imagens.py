@@ -46,6 +46,14 @@ _sexo_enum = sa.Enum("MACHO", "FEMEA", "DESCONHECIDO", name="sexo_enum")
 
 def upgrade() -> None:
     """Aplica os novos campos de produto e cria `imagens_pedido`."""
+    # No Postgres, `add_column` dentro de `batch_alter_table` NÃO cria o tipo
+    # enum automaticamente; criamos explicitamente antes do uso. No SQLite
+    # (enum não-nativo) é no-op.
+    bind = op.get_bind()
+    _especie_enum.create(bind, checkfirst=True)
+    _porte_enum.create(bind, checkfirst=True)
+    _sexo_enum.create(bind, checkfirst=True)
+
     op.create_table(
         "imagens_pedido",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
@@ -71,7 +79,7 @@ def upgrade() -> None:
             sa.Column(
                 "consentimento_aceito",
                 sa.Boolean(),
-                server_default=sa.text("0"),
+                server_default=sa.false(),
                 nullable=False,
             )
         )
@@ -106,7 +114,7 @@ def upgrade() -> None:
             sa.Column(
                 "consentimento_aceito",
                 sa.Boolean(),
-                server_default=sa.text("0"),
+                server_default=sa.false(),
                 nullable=False,
             )
         )

@@ -12,8 +12,8 @@ Fase B2 — adiciona a moderação de conteúdo:
 A coluna em ``pedidos`` é adicionada via ``batch_alter_table`` para
 compatibilidade com o SQLite.
 
-Revision ID: 0007_moderacao_oculto_e_denuncias
-Revises: 0006_atendimento_unico_por_doador
+Revision ID: 0007_moderacao_denuncias
+Revises: 0006_atend_unico_doador
 Create Date: 2026-06-02 22:30:00.000000
 
 """
@@ -25,8 +25,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "0007_moderacao_oculto_e_denuncias"
-down_revision: str | None = "0006_atendimento_unico_por_doador"
+revision: str = "0007_moderacao_denuncias"
+down_revision: str | None = "0006_atend_unico_doador"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -38,7 +38,7 @@ def upgrade() -> None:
             sa.Column(
                 "oculto",
                 sa.Boolean(),
-                server_default=sa.text("0"),
+                server_default=sa.false(),
                 nullable=False,
             )
         )
