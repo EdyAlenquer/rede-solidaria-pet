@@ -139,6 +139,39 @@ def test_admin_ocultar_e_reexibir_pedido(
     assert api_client.get(f"/api/v1/pedidos/{pedido['id']}").status_code == 200
 
 
+def test_revelar_contato_de_pedido_oculto_retorna_404(
+    api_client: TestClient, auth_headers: dict, admin_headers: dict
+) -> None:
+    """Pedido ocultado pela moderação não vaza o contato no endpoint /contato.
+
+    Regressão de segurança: `revelar_contato_pedido` deve usar a mesma semântica
+    pública do detalhe (404 para ocultos), e não expor o contato de um pedido que
+    a moderação tornou invisível.
+    """
+    pedido = _criar_pedido(api_client, auth_headers)
+
+    ocultar = api_client.patch(
+        f"/api/v1/admin/pedidos/{pedido['id']}/ocultar", headers=admin_headers
+    )
+    assert ocultar.status_code == 200
+
+    r = api_client.get(f"/api/v1/pedidos/{pedido['id']}/contato", headers=auth_headers)
+
+    assert r.status_code == 404
+
+
+def test_revelar_contato_de_pedido_visivel_retorna_contato(
+    api_client: TestClient, auth_headers: dict
+) -> None:
+    """O caminho normal (pedido visível) continua revelando o contato ao logado."""
+    pedido = _criar_pedido(api_client, auth_headers)
+
+    r = api_client.get(f"/api/v1/pedidos/{pedido['id']}/contato", headers=auth_headers)
+
+    assert r.status_code == 200
+    assert r.json()["contato"] == _PEDIDO_PAYLOAD["contato"]
+
+
 def test_admin_ocultar_por_nao_admin_retorna_403(
     api_client: TestClient, auth_headers: dict
 ) -> None:

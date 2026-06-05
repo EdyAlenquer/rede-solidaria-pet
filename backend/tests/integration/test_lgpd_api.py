@@ -144,6 +144,61 @@ def test_delete_me_anonimiza_usuario_e_invalida_token(
     assert pedido_db.contato != _PEDIDO_PAYLOAD["contato"]
 
 
+def test_delete_me_anonimiza_doador_derivado(
+    api_client: TestClient,
+    auth_headers: dict,
+    auth_headers_outro: dict,
+    db_session: Session,
+) -> None:
+    """DELETE /me anonimiza também o DoadorVoluntario derivado do titular (LGPD).
+
+    Ao registrar um atendimento, o usuário B gera uma linha em `doadores` com sua
+    PII real (nome/email/telefone). Após B exercer o direito de eliminação, essa
+    PII não pode permanecer recuperável em `doadores`.
+    """
+    from app.models.doador import DoadorVoluntario
+
+    pedido = _criar_pedido(api_client, auth_headers)
+
+    # O usuário B registra um atendimento -> cria doador a partir do e-mail de B.
+    atendimento = api_client.post(
+        f"/api/v1/pedidos/{pedido['id']}/atendimentos",
+        json={"tipo_ajuda": "Transporte", "observacao": "Posso levar ao vet."},
+        headers=auth_headers_outro,
+    )
+    assert atendimento.status_code == 201, atendimento.text
+
+    db_session.expire_all()
+    doador = (
+        db_session.query(DoadorVoluntario)
+        .filter(DoadorVoluntario.email == "outro@example.com")
+        .one()
+    )
+    doador_id = doador.id
+
+    r = api_client.delete("/api/v1/me", headers=auth_headers_outro)
+    assert r.status_code == 204, r.text
+
+    db_session.expire_all()
+    anonimizado = db_session.get(DoadorVoluntario, doador_id)
+    assert anonimizado is not None
+    assert anonimizado.nome == "Doador removido"
+    assert anonimizado.email == f"removido+doador{doador_id}@anonimizado.local"
+    assert anonimizado.telefone is None
+    assert anonimizado.deleted_at is not None
+
+
+def test_delete_me_sem_doador_associado_nao_quebra(
+    api_client: TestClient, auth_headers: dict
+) -> None:
+    """DELETE /me funciona mesmo quando o titular não tem doador associado."""
+    _criar_pedido(api_client, auth_headers)
+
+    r = api_client.delete("/api/v1/me", headers=auth_headers)
+
+    assert r.status_code == 204, r.text
+
+
 def test_delete_me_libera_reuso_do_email_original(
     api_client: TestClient, auth_headers: dict
 ) -> None:

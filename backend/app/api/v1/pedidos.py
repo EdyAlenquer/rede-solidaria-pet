@@ -208,9 +208,9 @@ def revelar_contato_pedido(
 
     Raises:
         NaoAutenticadoError: se não houver Bearer válido (vira 401).
-        PedidoNotFoundError: se o pedido não existir (vira 404).
+        PedidoNotFoundError: se o pedido não existir ou estiver oculto (vira 404).
     """
-    pedido = service.get_by_id(pedido_id)
+    pedido = service.get_public_by_id(pedido_id)
     return PedidoContato(contato=pedido.contato, whatsapp=link_whatsapp(pedido.contato))
 
 

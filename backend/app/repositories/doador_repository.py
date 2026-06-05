@@ -1,6 +1,6 @@
 """Repositório de DoadorVoluntario."""
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.doador import DoadorVoluntario
@@ -103,6 +103,39 @@ class DoadorRepository:
             self.session.flush()
         self.session.refresh(doador)
         return doador
+
+    def anonimizar_por_email(self, email: str, *, commit: bool = False) -> bool:
+        """Anonimiza o doador associado a um e-mail (direito de eliminação LGPD).
+
+        Substitui a PII (nome/email/telefone) do doador derivado de um usuário
+        por valores anônimos e marca seu soft-delete. O e-mail anônimo passa a ser
+        único por id, liberando o e-mail original para reuso. Quando não existe
+        doador com o e-mail informado, a operação é um no-op seguro.
+
+        Args:
+            email: e-mail original do titular (chave de busca do doador).
+            commit: se True, confirma a transação; se False, apenas faz flush
+                para permitir composição transacional pela camada de serviço.
+
+        Returns:
+            True se um doador foi anonimizado; False se não havia doador com o
+            e-mail informado.
+
+        Side Effects:
+            Altera nome/email/telefone e preenche `deleted_at` do doador.
+        """
+        doador = self.get_by_email(email)
+        if doador is None:
+            return False
+        doador.nome = "Doador removido"
+        doador.email = f"removido+doador{doador.id}@anonimizado.local"
+        doador.telefone = None
+        doador.deleted_at = func.now()
+        if commit:
+            self.session.commit()
+        else:
+            self.session.flush()
+        return True
 
     def update(self, doador_id: int, payload: DoadorUpdate) -> DoadorVoluntario | None:
         """Atualiza parcialmente um doador.

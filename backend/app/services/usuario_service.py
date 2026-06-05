@@ -142,13 +142,15 @@ class UsuarioService:
         return {"perfil": usuario, "pedidos": pedidos, "atendimentos": atendimentos}
 
     def anonimizar(self, usuario_id: int) -> Usuario:
-        """Anonimiza e elimina o titular e seus pedidos, em uma única transação.
+        """Anonimiza e elimina o titular, seus pedidos e seu doador, atomicamente.
 
         Implementa o direito de eliminação (LGPD): anonimiza o usuário (nome,
-        e-mail, telefone e senha), marca seu soft-delete e, quando o repositório
-        de pedidos está disponível, soft-deleta os pedidos do titular anonimizando
-        o `contato`. Tudo é confirmado atomicamente; em caso de erro, a transação
-        é desfeita.
+        e-mail, telefone e senha), marca seu soft-delete e, quando os repositórios
+        estão disponíveis, soft-deleta os pedidos do titular (anonimizando o
+        `contato`) e anonimiza a linha de `doadores` derivada do usuário (criada
+        ao registrar atendimentos a partir do seu e-mail). Sem isso, a PII real
+        permaneceria recuperável em `doadores`. Tudo é confirmado atomicamente;
+        em caso de erro, a transação é desfeita.
 
         Args:
             usuario_id: identificador do usuário a anonimizar.
@@ -160,14 +162,18 @@ class UsuarioService:
             UsuarioNotFoundError: se o usuário não existir ou já estiver removido.
 
         Side Effects:
-            Persiste a anonimização do usuário e a remoção de seus pedidos.
+            Persiste a anonimização do usuário, a remoção de seus pedidos e a
+            anonimização do doador associado ao seu e-mail original.
         """
         usuario = self.get_by_id(usuario_id)
+        # Captura o e-mail original antes de anonimizar o usuário, pois é a chave
+        # que liga o titular à sua linha em `doadores`.
+        email_original = usuario.email
         # Hash de uma senha aleatória que ninguém conhece: invalida o login sem
         # deixar a coluna NOT NULL vazia.
         senha_hash_anonima = hash_senha(secrets.token_urlsafe(32))
         try:
-            usa_transacao = self.pedido_repository is not None
+            usa_transacao = self.pedido_repository is not None or self.doador_repository is not None
             self.repository.anonimizar(
                 usuario,
                 senha_hash_anonima=senha_hash_anonima,
@@ -175,6 +181,9 @@ class UsuarioService:
             )
             if self.pedido_repository is not None:
                 self.pedido_repository.soft_delete_e_anonimizar_por_autor(usuario_id, commit=False)
+            if self.doador_repository is not None:
+                self.doador_repository.anonimizar_por_email(email_original, commit=False)
+            if usa_transacao:
                 self.repository.session.commit()
         except Exception:
             self.repository.session.rollback()

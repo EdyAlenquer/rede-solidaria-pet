@@ -7,6 +7,7 @@ from app.api.deps import require_admin
 from app.database import get_db
 from app.models.usuario import Usuario
 from app.repositories.denuncia_repository import DenunciaRepository
+from app.repositories.doador_repository import DoadorRepository
 from app.repositories.pedido_repository import PedidoRepository
 from app.repositories.usuario_repository import UsuarioRepository
 from app.schemas import DenunciaRead, PedidoRead
@@ -28,15 +29,19 @@ def _service(db: Session = Depends(get_db)) -> DenunciaService:
 
 
 def _usuario_service(db: Session = Depends(get_db)) -> UsuarioService:
-    """Constrói um `UsuarioService` capaz de anonimizar usuários e pedidos.
+    """Constrói um `UsuarioService` capaz de anonimizar usuários, pedidos e doador.
 
     Args:
         db: sessão injetada por `get_db`.
 
     Returns:
-        Serviço de usuário com o repositório de pedidos injetado.
+        Serviço de usuário com os repositórios de pedidos e doadores injetados.
     """
-    return UsuarioService(UsuarioRepository(db), pedido_repository=PedidoRepository(db))
+    return UsuarioService(
+        UsuarioRepository(db),
+        pedido_repository=PedidoRepository(db),
+        doador_repository=DoadorRepository(db),
+    )
 
 
 @router.get(
