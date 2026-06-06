@@ -12,9 +12,9 @@ def test_allowed_cors_origins_em_producao_vem_apenas_do_env() -> None:
 
     com_env = Settings(
         app_env="production",
-        cors_origins="https://frontend-edyalenquers-projects.vercel.app",
+        cors_origins="https://rede-solidaria-pet.vercel.app",
     )
-    assert com_env.allowed_cors_origins() == ["https://frontend-edyalenquers-projects.vercel.app"]
+    assert com_env.allowed_cors_origins() == ["https://rede-solidaria-pet.vercel.app"]
 
 
 def test_allowed_cors_origins_remove_espacos_e_valores_vazios() -> None:

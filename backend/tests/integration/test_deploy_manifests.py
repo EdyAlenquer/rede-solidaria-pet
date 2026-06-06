@@ -28,7 +28,7 @@ def test_render_yaml_define_backend_e_postgres() -> None:
     assert any(env["key"] == "DATABASE_URL" for env in service["envVars"])
     assert {
         "key": "CORS_ORIGINS",
-        "value": "https://frontend-edyalenquers-projects.vercel.app",
+        "value": "https://rede-solidaria-pet.vercel.app",
     } in service["envVars"]
 
 
