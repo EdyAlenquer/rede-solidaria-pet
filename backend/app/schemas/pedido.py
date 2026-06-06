@@ -28,9 +28,11 @@ class PedidoBase(BaseModel):
     categoria: CategoriaEnum
     urgencia: UrgenciaEnum
 
-    # Localização
-    cidade: str = Field(min_length=1, max_length=80)
-    estado: str = Field(min_length=2, max_length=2)
+    # Localização. A validação estrita (cidade não vazia, UF de 2 letras) vive em
+    # PedidoCreate (entrada); na LEITURA os campos são tolerantes para serializar
+    # pedidos legados com valores vazios deixados pelo backfill da migração.
+    cidade: str = Field(max_length=80)
+    estado: str = Field(max_length=2)
     bairro: str | None = Field(default=None, max_length=80)
     latitude: float | None = Field(default=None, ge=-90.0, le=90.0)
     longitude: float | None = Field(default=None, ge=-180.0, le=180.0)
@@ -42,10 +44,26 @@ class PedidoBase(BaseModel):
     idade_aproximada: str | None = Field(default=None, max_length=40)
     quantidade: int = Field(default=1, ge=1)
 
+
+class PedidoCreate(PedidoBase):
+    """Payload para criação de um pedido.
+
+    Reforça a localização (cidade não vazia, UF de 2 letras) e inclui o `contato`
+    (forma de contato do responsável), que é persistido mas nunca exposto na
+    leitura pública (`PedidoRead`); exige o aceite explícito do termo de
+    consentimento LGPD (`consentimento_aceito=True`).
+    """
+
+    cidade: str = Field(min_length=1, max_length=80)
+    estado: str = Field(min_length=2, max_length=2)
+    contato: str = Field(min_length=5, max_length=120)
+    consentimento_aceito: bool = False
+    consentimento_versao: str | None = Field(default=None, max_length=20)
+
     @field_validator("estado")
     @classmethod
     def _valida_uf(cls, valor: str) -> str:
-        """Normaliza e valida a sigla da UF.
+        """Normaliza e valida a sigla da UF na criação.
 
         Args:
             valor: estado informado (ex.: "sp", "SP").
@@ -60,19 +78,6 @@ class PedidoBase(BaseModel):
         if len(normalizado) != 2 or not normalizado.isalpha():
             raise ValueError("Informe a UF com duas letras (ex.: SP).")
         return normalizado
-
-
-class PedidoCreate(PedidoBase):
-    """Payload para criação de um pedido.
-
-    Inclui o `contato` (forma de contato do responsável), que é persistido mas
-    nunca exposto na leitura pública (`PedidoRead`); exige o aceite explícito do
-    termo de consentimento LGPD (`consentimento_aceito=True`).
-    """
-
-    contato: str = Field(min_length=5, max_length=120)
-    consentimento_aceito: bool = False
-    consentimento_versao: str | None = Field(default=None, max_length=20)
 
     @model_validator(mode="after")
     def _exige_consentimento(self) -> "PedidoCreate":
