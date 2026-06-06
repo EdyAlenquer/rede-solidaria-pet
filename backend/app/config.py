@@ -44,11 +44,35 @@ class Settings(BaseSettings):
     rate_limit_contato: str = Field(default="30/minute")
 
     # Upload de imagens
+    #: Backend de storage dos arquivos enviados.
+    #: "local" (default): grava em disco (`LocalStorageBackend`), adequado a dev.
+    #: "s3": grava em object storage S3-compatível (Cloudflare R2, AWS S3,
+    #: Supabase Storage, MinIO) via `S3StorageBackend`, durável em produção.
+    storage_backend: str = Field(default="local")
     #: Diretório onde o `LocalStorageBackend` grava os arquivos enviados.
     #: Em produção, troque por um backend de object storage (Cloudinary/R2).
     upload_dir: str = Field(default="uploads")
     #: Prefixo público sob o qual os arquivos são servidos (StaticFiles).
     public_upload_path: str = Field(default="/uploads")
+
+    # Object storage S3-compatível (usado quando `storage_backend == "s3"`)
+    #: Nome do bucket onde os objetos são gravados.
+    s3_bucket: str | None = Field(default=None)
+    #: Endpoint do serviço S3-compatível. Obrigatório para R2/MinIO/Supabase
+    #: (ex.: https://<accountid>.r2.cloudflarestorage.com). `None` usa a AWS.
+    s3_endpoint_url: str | None = Field(default=None)
+    #: Região do bucket. R2 usa "auto"; na AWS use a região real (ex.: us-east-1).
+    s3_region: str = Field(default="auto")
+    #: Access key id (token S3). Em produção, defina via segredo do ambiente.
+    s3_access_key_id: str | None = Field(default=None)
+    #: Secret access key (token S3). Em produção, defina via segredo do ambiente.
+    s3_secret_access_key: str | None = Field(default=None)
+    #: Base pública/CDN onde os objetos são servidos (ex.: https://pub-xxx.r2.dev
+    #: ou um domínio próprio). É o prefixo das URLs públicas retornadas por
+    #: `salvar`. A visibilidade pública vem do bucket/domínio, não de ACLs.
+    s3_public_base_url: str | None = Field(default=None)
+    #: Prefixo (pseudo-pasta) aplicado às chaves dos objetos no bucket.
+    s3_prefix: str = Field(default="pedidos")
     #: Tamanho máximo aceito por imagem, em bytes (default 5 MiB).
     max_upload_bytes: int = Field(default=5 * 1024 * 1024)
     #: Content-types de imagem aceitos no upload.

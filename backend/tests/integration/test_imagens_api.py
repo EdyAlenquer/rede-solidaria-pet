@@ -3,8 +3,10 @@
 from collections.abc import Iterator
 from pathlib import Path
 
+import boto3
 import pytest
 from fastapi.testclient import TestClient
+from moto import mock_aws
 
 from app.config import Settings, get_settings
 from app.main import app
@@ -247,3 +249,56 @@ def test_delete_nao_autor_retorna_403(
         f"/api/v1/pedidos/{pedido_id}/imagens/{imagem_id}", headers=auth_headers_outro
     )
     assert r.status_code == 403
+
+
+_S3_BUCKET = "rede-solidaria-pet-test"
+_S3_BASE_URL = "https://pub-abc123.r2.dev"
+_S3_PREFIX = "pedidos"
+
+
+@mock_aws
+def test_upload_com_storage_s3_grava_url_publica(
+    api_client: TestClient, auth_headers: dict
+) -> None:
+    """Com `storage_backend="s3"`, a ImagemPedido.url é a URL pública do S3.
+
+    Usa o S3 mockado pelo moto: o endpoint resolve o storage via `get_storage`
+    a partir das Settings overridadas, grava o objeto no bucket e retorna a URL
+    pública. Verifica também que o objeto foi de fato gravado sob a chave
+    ``prefix/<nome>``.
+    """
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket=_S3_BUCKET)
+
+    def _override_get_settings() -> Settings:
+        return Settings(
+            storage_backend="s3",
+            s3_bucket=_S3_BUCKET,
+            s3_region="us-east-1",
+            s3_access_key_id="testing",
+            s3_secret_access_key="testing",
+            s3_public_base_url=_S3_BASE_URL,
+            s3_prefix=_S3_PREFIX,
+            rate_limit_enabled=False,
+        )
+
+    app.dependency_overrides[get_settings] = _override_get_settings
+    try:
+        pedido_id = _criar_pedido(api_client, auth_headers)
+        r = api_client.post(
+            f"/api/v1/pedidos/{pedido_id}/imagens",
+            files={"arquivo": ("foto.png", _PNG_1X1, "image/png")},
+            headers=auth_headers,
+        )
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
+
+    assert r.status_code == 201, r.text
+    url = r.json()["url"]
+    assert url.startswith(f"{_S3_BASE_URL}/{_S3_PREFIX}/")
+    assert url.endswith(".png")
+
+    key = url[len(f"{_S3_BASE_URL}/") :]
+    obj = s3.get_object(Bucket=_S3_BUCKET, Key=key)
+    assert obj["Body"].read() == _PNG_1X1
+    assert obj["ContentType"] == "image/png"

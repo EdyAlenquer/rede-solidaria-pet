@@ -49,8 +49,28 @@ services:
       #   sync: false
       # - key: SMTP_FROM
       #   sync: false
-      # Upload de imagens (storage local por padrão; em produção troque por um
-      # object storage e ajuste UPLOAD_DIR/PUBLIC_UPLOAD_PATH):
+      # Storage das imagens enviadas. O default "local" grava em disco EFÊMERO
+      # no Render free: as fotos somem a cada deploy/restart. Em produção, use
+      # object storage S3-compatível (Cloudflare R2) — veja docs/deploy.md.
+      # Configure STORAGE_BACKEND=s3 e os S3_* abaixo no DASHBOARD do Render
+      # (sync: false = segredo, definido na UI; NUNCA versione valores reais).
+      # - key: STORAGE_BACKEND
+      #   value: s3
+      # - key: S3_BUCKET
+      #   sync: false
+      # - key: S3_ENDPOINT_URL        # R2: https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+      #   sync: false
+      # - key: S3_REGION              # "auto" no R2; região real na AWS
+      #   value: auto
+      # - key: S3_ACCESS_KEY_ID
+      #   sync: false
+      # - key: S3_SECRET_ACCESS_KEY
+      #   sync: false
+      # - key: S3_PUBLIC_BASE_URL     # R2: https://pub-<HASH>.r2.dev ou domínio próprio
+      #   sync: false
+      # - key: S3_PREFIX
+      #   value: pedidos
+      # Storage local (default; só relevante quando STORAGE_BACKEND=local):
       # - key: UPLOAD_DIR
       #   value: uploads
       # - key: PUBLIC_UPLOAD_PATH

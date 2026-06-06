@@ -40,8 +40,16 @@
 | `SMTP_PASSWORD` | Não | `<segredo>` | Senha de autenticação SMTP. |
 | `SMTP_FROM` | Quando `smtp` | `Rede Solidária Pet <no-reply@exemplo.com>` | Remetente dos e-mails. |
 | `SMTP_TLS` | Não (default `true`) | `true` | Usa STARTTLS na conexão SMTP. |
-| `UPLOAD_DIR` | Não (default `uploads`) | `uploads` | Diretório do `LocalStorageBackend`. **Efêmero no Render** (veja Object storage). |
-| `PUBLIC_UPLOAD_PATH` | Não (default `/uploads`) | `/uploads` | Prefixo público sob o qual as imagens são servidas. |
+| `STORAGE_BACKEND` | Não (default `local`) | `s3` | Backend de storage das imagens. `local` grava em disco (**efêmero no Render**); `s3` grava em object storage S3-compatível (veja Object storage). |
+| `S3_BUCKET` | Quando `s3` | `rede-solidaria-pet` | Nome do bucket de destino. |
+| `S3_ENDPOINT_URL` | Quando `s3` em R2/MinIO/Supabase | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` | Endpoint do serviço S3-compatível. Vazio usa a AWS. |
+| `S3_REGION` | Não (default `auto`) | `auto` | Região do bucket. `auto` no R2; região real na AWS (ex.: `us-east-1`). |
+| `S3_ACCESS_KEY_ID` | Quando `s3` | `<token>` | Access key id do token S3. **Segredo** — defina no dashboard, nunca versione. |
+| `S3_SECRET_ACCESS_KEY` | Quando `s3` | `<segredo>` | Secret access key do token S3. **Segredo** — defina no dashboard, nunca versione. |
+| `S3_PUBLIC_BASE_URL` | Quando `s3` | `https://pub-xxxxxxxx.r2.dev` | Base pública/CDN onde os objetos são servidos (prefixo das URLs salvas). |
+| `S3_PREFIX` | Não (default `pedidos`) | `pedidos` | Prefixo (pseudo-pasta) das chaves dos objetos no bucket. |
+| `UPLOAD_DIR` | Não (default `uploads`) | `uploads` | Diretório do `LocalStorageBackend` (só quando `STORAGE_BACKEND=local`). **Efêmero no Render** (veja Object storage). |
+| `PUBLIC_UPLOAD_PATH` | Não (default `/uploads`) | `/uploads` | Prefixo público sob o qual as imagens locais são servidas. |
 | `MAX_UPLOAD_BYTES` | Não (default `5242880`) | `5242880` | Tamanho máximo por imagem em bytes (5 MiB). |
 | `MAX_IMAGENS_POR_PEDIDO` | Não (default `6`) | `6` | Número máximo de imagens por pedido. |
 
@@ -78,6 +86,65 @@ O mesmo gate está disponível manualmente no GitHub Actions em `Production Smok
 
 - `render.yaml`: declara o Web Service Docker do backend e o PostgreSQL gerenciado.
 - `frontend/vercel.json`: declara build Vite, diretório de saída e rewrite SPA do frontend.
+
+## Armazenamento de fotos em produção
+
+O backend grava as imagens enviadas através de uma abstração de storage
+(`app/core/storage.py`), selecionável por `STORAGE_BACKEND`:
+
+- `local` (default): `LocalStorageBackend` grava em disco (`UPLOAD_DIR`) e serve
+  via `StaticFiles`. **No Render free o disco é efêmero**: as fotos somem a cada
+  deploy/restart e não são compartilhadas entre workers. Bom para desenvolvimento,
+  inadequado para produção.
+- `s3`: `S3StorageBackend` grava em object storage S3-compatível (Cloudflare R2,
+  AWS S3, Supabase Storage, MinIO). Durável e compartilhado entre instâncias.
+
+### Cloudflare R2 (recomendado)
+
+R2 é S3-compatível, tem franquia gratuita generosa e **não cobra egress**.
+
+1. **Criar o bucket.** No painel da Cloudflare → R2 → *Create bucket* (ex.:
+   `rede-solidaria-pet`). Anote o **Account ID** (aparece na URL e no painel R2).
+2. **Habilitar acesso público.** No bucket → *Settings* → *Public access*:
+   - Opção simples: habilite o subdomínio **r2.dev** (gera uma base pública
+     `https://pub-<HASH>.r2.dev`). Use essa URL em `S3_PUBLIC_BASE_URL`.
+   - Opção com domínio próprio: conecte um *Custom Domain* (ex.:
+     `https://fotos.seudominio.com.br`) e use-o em `S3_PUBLIC_BASE_URL`.
+   - O app **não** aplica ACL `public-read` no upload (o R2 não suporta ACLs); a
+     visibilidade pública vem exclusivamente desse acesso público do bucket.
+3. **Criar um API token S3.** R2 → *Manage R2 API Tokens* → *Create API token*
+   com permissão *Object Read & Write* no bucket. Guarde o **Access Key ID** e o
+   **Secret Access Key** (o secret só aparece uma vez).
+4. **Endpoint S3 do R2:** `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`.
+5. **Configurar as variáveis** (no dashboard do Render; segredos **nunca**
+   versionados — em `render.yaml` ficam como `sync: false`):
+
+   ```
+   STORAGE_BACKEND=s3
+   S3_BUCKET=rede-solidaria-pet
+   S3_ENDPOINT_URL=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+   S3_REGION=auto
+   S3_ACCESS_KEY_ID=<access key id do token>
+   S3_SECRET_ACCESS_KEY=<secret access key do token>
+   S3_PUBLIC_BASE_URL=https://pub-<HASH>.r2.dev   # ou o domínio próprio
+   S3_PREFIX=pedidos
+   ```
+
+6. **Redeploy** e validar um upload: a URL retornada deve começar por
+   `S3_PUBLIC_BASE_URL` e a imagem deve abrir publicamente nessa URL.
+
+> AWS S3 / MinIO / Supabase Storage seguem o mesmo esquema: ajuste
+> `S3_ENDPOINT_URL` (vazio para AWS), `S3_REGION` (região real na AWS) e a base
+> pública/CDN em `S3_PUBLIC_BASE_URL`.
+
+### Alternativa: Cloudinary
+
+[Cloudinary](https://cloudinary.com/) é um SaaS de mídia (não é S3-compatível;
+exige um backend de storage próprio, ainda não implementado). Oferece um plano
+gratuito, CDN, transformações on-the-fly (resize/crop/otimização) e entrega em
+formatos modernos. É uma opção quando além de armazenar você quer processamento
+de imagem gerenciado; para apenas armazenar de forma durável, o R2 acima é mais
+simples e já suportado pelo `S3StorageBackend`.
 
 ## Desenvolvimento com containers
 
