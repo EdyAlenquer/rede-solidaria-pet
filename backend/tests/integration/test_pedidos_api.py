@@ -701,3 +701,37 @@ def test_delete_pedido_inexistente_retorna_404(api_client: TestClient, auth_head
 
     assert r.status_code == 404
     assert r.json()["title"] == "Pedido não encontrado"
+
+
+def test_get_pedidos_tolera_localizacao_legada_vazia(api_client: TestClient, db_session) -> None:
+    """Pedido legado com cidade/estado vazios é lido sem 500.
+
+    A migração de produção fez backfill de `cidade=''`/`estado=''` em pedidos
+    pré-existentes; a leitura (`PedidoRead`) deve tolerar esses valores em vez de
+    falhar a validação e estourar 500 na listagem/detalhe.
+    """
+    from app.models.enums import CategoriaEnum, StatusPedidoEnum, UrgenciaEnum
+    from app.models.pedido import PedidoAjuda
+
+    legado = PedidoAjuda(
+        titulo="Pedido legado sem localização",
+        descricao="Criado antes dos campos de localização entrarem no schema.",
+        categoria=CategoriaEnum.RESGATE,
+        urgencia=UrgenciaEnum.MEDIA,
+        status=StatusPedidoEnum.ABERTO,
+        contato="11999990000",
+        cidade="",
+        estado="",
+    )
+    db_session.add(legado)
+    db_session.commit()
+    db_session.refresh(legado)
+
+    r_lista = api_client.get("/api/v1/pedidos")
+    assert r_lista.status_code == 200
+    assert legado.id in [p["id"] for p in r_lista.json()["items"]]
+
+    r_detalhe = api_client.get(f"/api/v1/pedidos/{legado.id}")
+    assert r_detalhe.status_code == 200
+    assert r_detalhe.json()["estado"] == ""
+    assert r_detalhe.json()["cidade"] == ""
