@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PedidoNovoPage } from './PedidoNovoPage'
 import { criarPedido } from '../services/api/pedidos'
 import { enviarImagem } from '../services/api/imagens'
+import { buscarEndereco, type ResultadoEndereco } from '../utils/geocoding'
 
 vi.mock('../services/api/pedidos', () => ({
   criarPedido: vi.fn(),
@@ -14,6 +15,10 @@ vi.mock('../services/api/pedidos', () => ({
 
 vi.mock('../services/api/imagens', () => ({
   enviarImagem: vi.fn(),
+}))
+
+vi.mock('../utils/geocoding', () => ({
+  buscarEndereco: vi.fn(),
 }))
 
 const mostrarMock = vi.fn()
@@ -40,6 +45,15 @@ vi.mock('../components/MapaSelecao', () => ({
     </button>
   ),
 }))
+
+const enderecoExato: ResultadoEndereco = {
+  label: 'Rua Augusta, Consolação, São Paulo, SP, Brasil',
+  latitude: -23.55,
+  longitude: -46.66,
+  cidade: 'São Paulo',
+  estado: 'SP',
+  bairro: 'Consolação',
+}
 
 const pedidoCriado = {
   id: 22,
@@ -83,6 +97,7 @@ describe('PedidoNovoPage', () => {
     vi.clearAllMocks()
     vi.mocked(criarPedido).mockResolvedValue(pedidoCriado)
     vi.mocked(enviarImagem).mockResolvedValue({ id: 1, url: '/uploads/a.jpg', ordem: 0 })
+    vi.mocked(buscarEndereco).mockResolvedValue([enderecoExato])
   })
 
   it('mostra validações em PT-BR para envio vazio e não chama a API', async () => {
@@ -155,6 +170,46 @@ describe('PedidoNovoPage', () => {
     await waitFor(() =>
       expect(criarPedido).toHaveBeenCalledWith(
         expect.objectContaining({ latitude: -23.5, longitude: -46.6 }),
+      ),
+    )
+  })
+
+  it('busca um endereço, autopreenche cidade/estado/bairro e fixa a coordenada', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.type(screen.getByLabelText(/^Endereço/i), 'rua augusta')
+
+    const opcao = await screen.findByRole('option', {
+      name: 'Rua Augusta, Consolação, São Paulo, SP, Brasil',
+    })
+    await user.click(opcao)
+
+    // Autopreenche os campos a partir do endereço exato escolhido.
+    expect(screen.getByLabelText('Cidade')).toHaveValue('São Paulo')
+    expect(screen.getByLabelText('Estado')).toHaveValue('SP')
+    expect(screen.getByLabelText('Bairro (opcional)')).toHaveValue('Consolação')
+
+    // Preenche os demais obrigatórios e envia: a coordenada do endereço vai junto.
+    await user.type(screen.getByLabelText('Título do pedido'), 'Ração para filhotes')
+    await user.type(
+      screen.getByLabelText(/Descrição/),
+      'Família temporária precisa de ração hoje mesmo.',
+    )
+    await user.selectOptions(screen.getByLabelText('Categoria'), 'racao')
+    await user.type(screen.getByLabelText('Contato'), '11999990000')
+    await user.click(screen.getByLabelText(/aceito a política de privacidade/i))
+    await user.click(screen.getByRole('button', { name: /publicar pedido/i }))
+
+    await waitFor(() =>
+      expect(criarPedido).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cidade: 'São Paulo',
+          estado: 'SP',
+          bairro: 'Consolação',
+          latitude: -23.55,
+          longitude: -46.66,
+        }),
       ),
     )
   })
