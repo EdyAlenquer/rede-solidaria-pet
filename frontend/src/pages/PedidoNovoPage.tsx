@@ -2,10 +2,12 @@ import { lazy, Suspense, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { Button, Input, Select } from '../components/ui'
+import { CampoEndereco } from '../components/CampoEndereco'
 import { Seo } from '../components/Seo'
 import { useToast } from '../components/Toast'
 import { UploadImagens, type ArquivoSelecionado } from '../components/UploadImagens'
 import type { Coordenada } from '../components/MapaSelecao'
+import type { ResultadoEndereco } from '../utils/geocoding'
 import { categorias, especies, portes, sexos, ufs, urgencias } from '../constants/dominio'
 import { criarPedido } from '../services/api/pedidos'
 import { enviarImagem } from '../services/api/imagens'
@@ -109,6 +111,17 @@ export function PedidoNovoPage() {
         mostrar('Não foi possível obter sua localização.', 'erro')
       },
     )
+  }
+
+  function selecionarEndereco(resultado: ResultadoEndereco) {
+    setCoordenada({ latitude: resultado.latitude, longitude: resultado.longitude })
+    setCampos((atual) => ({
+      ...atual,
+      cidade: resultado.cidade ?? atual.cidade,
+      estado: resultado.estado ?? atual.estado,
+      bairro: resultado.bairro ?? atual.bairro,
+    }))
+    setErros((atual) => ({ ...atual, cidade: undefined, estado: undefined }))
   }
 
   function validar(): ErrosPedido {
@@ -347,9 +360,10 @@ export function PedidoNovoPage() {
         <fieldset className="rsp-fieldset">
           <legend className="rsp-block-label">Localização no mapa (opcional)</legend>
           <p className="rsp-help">
-            Clique no mapa para marcar o ponto ou use sua localização atual. Ajuda voluntários a se
-            orientarem sem expor um endereço exato.
+            Busque o endereço exato, clique no mapa para marcar o ponto ou use sua localização
+            atual. Ajuda voluntários a se orientarem.
           </p>
+          <CampoEndereco onSelecionar={selecionarEndereco} />
           <Button variant="secondary" onClick={usarMinhaLocalizacao}>
             Usar minha localização
           </Button>
