@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
-import { Badge, Button, Select, Skeleton } from '../components/ui'
+import { Button, Select, Skeleton } from '../components/ui'
 import { Seo } from '../components/Seo'
 import {
   categorias,
@@ -301,36 +301,48 @@ function PedidoCard({ pedido }: PedidoCardProps) {
 
   return (
     <Link className="rsp-pedido-card" to={`/pedidos/${pedido.id}`}>
-      <div className="rsp-pedido-card__head">
-        <div className="rsp-pedido-thumb">
-          {capa ? (
-            <img src={capa} alt={`Foto de ${pedido.titulo}`} loading="lazy" />
-          ) : (
-            <span aria-hidden="true">🐾</span>
+      <div className="rsp-pedido-card__media">
+        {capa ? (
+          <img src={capa} alt={`Foto de ${pedido.titulo}`} loading="lazy" decoding="async" />
+        ) : (
+          <span className="rsp-pedido-card__media-fallback" aria-hidden="true">
+            🐾
+          </span>
+        )}
+        <span
+          className={`rsp-pedido-card__urgency rsp-pedido-card__urgency--${tomUrgencia(
+            pedido.urgencia,
+          )}`}
+        >
+          {rotuloDe(urgencias, pedido.urgencia)}
+        </span>
+        {pedido.status !== 'aberto' && (
+          <span className="rsp-pedido-card__status">{rotuloDe(statusOpcoes, pedido.status)}</span>
+        )}
+      </div>
+      <div className="rsp-pedido-card__body">
+        <p className="rsp-pedido-card__eyebrow">
+          <span>{rotuloDe(categorias, pedido.categoria)}</span>
+          {localizacao && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{localizacao}</span>
+            </>
+          )}
+        </p>
+        <h2 className="rsp-pedido-card__title">{pedido.titulo}</h2>
+        <p className="rsp-pedido-card__desc">{pedido.descricao}</p>
+        <div className="rsp-pedido-card__footer">
+          <div className="rsp-pedido-card__tags">
+            {especie && <span className="rsp-pedido-card__tag">{rotuloDe(especies, especie)}</span>}
+            {porte && <span className="rsp-pedido-card__tag">{rotuloDe(portes, porte)}</span>}
+          </div>
+          {typeof atendimentos === 'number' && atendimentos > 0 && (
+            <span className="rsp-pedido-card__help">
+              {atendimentos} {atendimentos === 1 ? 'atendimento' : 'atendimentos'}
+            </span>
           )}
         </div>
-        <div className="rsp-pedido-card__body">
-          <h2 className="rsp-pedido-card__title">{pedido.titulo}</h2>
-          <p className="rsp-pedido-card__meta">
-            {rotuloDe(categorias, pedido.categoria)} · publicado em{' '}
-            {new Date(pedido.data_criacao).toLocaleDateString('pt-BR')}
-          </p>
-        </div>
-      </div>
-      <p className="rsp-pedido-card__desc">{pedido.descricao}</p>
-      <div className="rsp-pedido-card__footer">
-        <Badge tone={tomUrgencia(pedido.urgencia)}>{rotuloDe(urgencias, pedido.urgencia)}</Badge>
-        {pedido.status !== 'aberto' && (
-          <Badge tone="neutral">{rotuloDe(statusOpcoes, pedido.status)}</Badge>
-        )}
-        {localizacao && <Badge tone="neutral">{localizacao}</Badge>}
-        {especie && <Badge tone="neutral">{rotuloDe(especies, especie)}</Badge>}
-        {porte && <Badge tone="neutral">{rotuloDe(portes, porte)}</Badge>}
-        {typeof atendimentos === 'number' && atendimentos > 0 && (
-          <Badge tone="success">
-            {atendimentos} {atendimentos === 1 ? 'atendimento' : 'atendimentos'}
-          </Badge>
-        )}
       </div>
     </Link>
   )
