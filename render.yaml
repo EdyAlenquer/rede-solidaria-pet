@@ -25,7 +25,7 @@ services:
           name: rede-solidaria-pet-db
           property: connectionString
       - key: CORS_ORIGINS
-        value: https://frontend-edyalenquers-projects.vercel.app
+        value: https://rede-solidaria-pet.vercel.app
       # Chave de assinatura JWT gerada pelo Render (nunca versionada). Em
       # produção o app recusa subir com a SECRET_KEY default insegura.
       - key: SECRET_KEY

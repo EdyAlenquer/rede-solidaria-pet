@@ -13,7 +13,7 @@
 | Camada | URL |
 | ------ | --- |
 | Backend | `https://rede-solidaria-pet-api.onrender.com` |
-| Frontend | `https://frontend-edyalenquers-projects.vercel.app` |
+| Frontend | `https://rede-solidaria-pet.vercel.app` |
 
 ## Variáveis de ambiente
 
@@ -24,7 +24,7 @@
 | `APP_ENV` | Sim | `production` | Ambiente de execução. Em `production`, o app recusa subir com a `SECRET_KEY` default insegura. |
 | `LOG_LEVEL` | Não (default `INFO`) | `INFO` | Nível de log estruturado. |
 | `DATABASE_URL` | Sim | `postgresql+psycopg://user:pass@host:5432/db` | URL SQLAlchemy do PostgreSQL. Use o driver `psycopg` (v3). |
-| `CORS_ORIGINS` | Sim (em prod) | `https://frontend-edyalenquers-projects.vercel.app` | Origens autorizadas a consumir a API (lista separada por vírgulas). |
+| `CORS_ORIGINS` | Sim (em prod) | `https://rede-solidaria-pet.vercel.app` | Origens autorizadas a consumir a API (lista separada por vírgulas). |
 | `SECRET_KEY` | Sim (em prod) | `<32+ bytes aleatórios>` | Chave de assinatura JWT (HS256). No Render use `generateValue: true`; nunca versione. |
 | `WEB_CONCURRENCY` | Não (default `2`) | `2` | Número de workers do Uvicorn. Ajuste conforme as CPUs do plano. |
 | `JWT_ALGORITHM` | Não (default `HS256`) | `HS256` | Algoritmo de assinatura JWT. |
@@ -67,7 +67,7 @@
 Depois de publicar backend e frontend, rode:
 
 ```bash
-FRONTEND_PUBLIC_URL=https://frontend-edyalenquers-projects.vercel.app \
+FRONTEND_PUBLIC_URL=https://rede-solidaria-pet.vercel.app \
 BACKEND_PUBLIC_URL=https://rede-solidaria-pet-api.onrender.com \
 node scripts/smoke-production.mjs
 ```

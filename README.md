@@ -77,7 +77,7 @@ O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md).
 - Manifests versionados: `render.yaml` (backend + PostgreSQL), `frontend/vercel.json`, `compose.yml`.
 - Migrações em pré-deploy (`preDeployCommand`) e health-check de readiness.
 - Backend publicado em https://rede-solidaria-pet-api.onrender.com.
-- Frontend publicado em https://frontend-edyalenquers-projects.vercel.app.
+- Frontend publicado em https://rede-solidaria-pet.vercel.app.
 
 ### Roadmap de próximos passos
 

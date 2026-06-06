@@ -34,7 +34,7 @@ jobs:
           FRONTEND_PUBLIC_URL: >-
             ${{ inputs.frontend_url
               || vars.FRONTEND_PUBLIC_URL
-              || 'https://frontend-edyalenquers-projects.vercel.app' }}
+              || 'https://rede-solidaria-pet.vercel.app' }}
           BACKEND_PUBLIC_URL: >-
             ${{ inputs.backend_url
               || vars.BACKEND_PUBLIC_URL
