@@ -75,6 +75,7 @@ function pedidoParaCampos(pedido: Pedido): CamposPedido {
 export function PedidoEditarPage() {
   const { pedidoId } = useParams()
   const numericPedidoId = Number(pedidoId)
+  const pedidoIdValido = Number.isInteger(numericPedidoId) && numericPedidoId > 0
   const navigate = useNavigate()
   const { mostrar } = useToast()
   const { usuario } = useAuth()
@@ -88,6 +89,14 @@ export function PedidoEditarPage() {
 
   useEffect(() => {
     let ativo = true
+    if (!pedidoIdValido) {
+      setCampos(null)
+      setErroCarregar('Pedido não encontrado.')
+      setCarregando(false)
+      return () => {
+        ativo = false
+      }
+    }
     setCarregando(true)
     setErroCarregar(null)
     obterPedido(numericPedidoId)
@@ -123,7 +132,7 @@ export function PedidoEditarPage() {
     return () => {
       ativo = false
     }
-  }, [numericPedidoId, usuario])
+  }, [numericPedidoId, pedidoIdValido, usuario])
 
   function atualizar<K extends keyof CamposPedido>(campo: K, valor: string) {
     setCampos((atual) => (atual ? { ...atual, [campo]: valor } : atual))

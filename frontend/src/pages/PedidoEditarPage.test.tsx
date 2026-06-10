@@ -46,10 +46,10 @@ describe('PedidoEditarPage', () => {
     vi.mocked(editarPedido).mockResolvedValue({ ...pedido, titulo: 'Gata adotada' })
   })
 
-  function renderPage() {
+  function renderPage(initialEntries = ['/pedidos/7/editar']) {
     render(
       <HelmetProvider>
-        <MemoryRouter initialEntries={['/pedidos/7/editar']}>
+        <MemoryRouter initialEntries={initialEntries}>
           <Routes>
             <Route path="/pedidos/:pedidoId/editar" element={<PedidoEditarPage />} />
             <Route path="/pedidos/:pedidoId" element={<div>Detalhe do pedido</div>} />
@@ -65,6 +65,13 @@ describe('PedidoEditarPage', () => {
     expect(await screen.findByDisplayValue('Gata precisa de transporte')).toBeInTheDocument()
     expect(screen.getByLabelText('Categoria')).toHaveValue('transporte')
     expect(screen.getByLabelText('Estado')).toHaveValue('SP')
+  })
+
+  it('não chama a API quando o id da rota é inválido', async () => {
+    renderPage(['/pedidos/abc/editar'])
+
+    expect(await screen.findByText(/pedido não encontrado/i)).toBeInTheDocument()
+    expect(obterPedido).not.toHaveBeenCalled()
   })
 
   it('salva via PATCH e navega ao detalhe', async () => {

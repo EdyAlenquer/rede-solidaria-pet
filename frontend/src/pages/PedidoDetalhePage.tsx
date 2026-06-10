@@ -58,6 +58,7 @@ const TIPOS_AJUDA = [
 export function PedidoDetalhePage() {
   const { pedidoId } = useParams()
   const numericPedidoId = Number(pedidoId)
+  const pedidoIdValido = Number.isInteger(numericPedidoId) && numericPedidoId > 0
   const navigate = useNavigate()
   const { mostrar } = useToast()
   const { usuario, isAuthenticated } = useAuth()
@@ -75,6 +76,15 @@ export function PedidoDetalhePage() {
 
   useEffect(() => {
     let active = true
+    if (!pedidoIdValido) {
+      setPedido(null)
+      setAtendimentos([])
+      setError('Pedido não encontrado.')
+      setLoading(false)
+      return () => {
+        active = false
+      }
+    }
     setLoading(true)
     setError(null)
     Promise.all([obterPedido(numericPedidoId), listarAtendimentos(numericPedidoId)])
@@ -94,7 +104,7 @@ export function PedidoDetalhePage() {
     return () => {
       active = false
     }
-  }, [numericPedidoId])
+  }, [numericPedidoId, pedidoIdValido])
 
   async function handleRevelarContato() {
     setRevelandoContato(true)

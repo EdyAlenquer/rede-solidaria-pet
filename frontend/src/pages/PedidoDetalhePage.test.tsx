@@ -128,6 +128,14 @@ describe('PedidoDetalhePage', () => {
     expect(screen.getByText(/Posso levar amanhã cedo/i)).toBeInTheDocument()
   })
 
+  it('não chama a API quando o id da rota é inválido', async () => {
+    renderPage(['/pedidos/abc'])
+
+    expect(await screen.findByText(/pedido não encontrado/i)).toBeInTheDocument()
+    expect(obterPedido).not.toHaveBeenCalled()
+    expect(listarAtendimentos).not.toHaveBeenCalled()
+  })
+
   it('exige login para revelar contato quando anônimo', async () => {
     renderPage()
     await screen.findByRole('heading', { name: pedidoBase.titulo })
