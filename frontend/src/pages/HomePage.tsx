@@ -87,8 +87,12 @@ export function HomePage() {
             <span>Pedido aberto</span>
             <strong>Urgente</strong>
           </div>
-          <div className="rsp-home__preview-art" aria-hidden="true">
-            <span className="rsp-home__preview-emoji">🐾</span>
+          <div className="rsp-home__preview-art">
+            <img
+              src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=900&q=80"
+              alt="Filhotes aguardando ajuda comunitária"
+              loading="lazy"
+            />
           </div>
           <h2>Ração para filhotes recém-nascidos</h2>
           <p>Protetora acolheu quatro filhotes e precisa de ração úmida ainda hoje.</p>

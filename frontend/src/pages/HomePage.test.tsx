@@ -46,6 +46,9 @@ describe('HomePage', () => {
       'href',
       '/pedidos/novo',
     )
+    expect(
+      screen.getByRole('img', { name: /filhotes aguardando ajuda comunitária/i }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /como funciona/i })).toBeInTheDocument()
   })
 
