@@ -575,6 +575,23 @@ a {
   gap: 4px;
 }
 
+.rsp-footer__author {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--rsp-ink-muted);
+}
+
+.rsp-footer__author a {
+  color: var(--rsp-ink-soft);
+  text-decoration: none;
+}
+
+.rsp-footer__author a:hover,
+.rsp-footer__author a:focus-visible {
+  color: var(--rsp-primary-700);
+  text-decoration: underline;
+}
+
 .rsp-footer__links {
   display: flex;
   flex-wrap: wrap;
