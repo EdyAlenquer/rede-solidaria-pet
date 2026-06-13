@@ -87,6 +87,16 @@ export function AppLayout() {
         <div className="rsp-footer__brand">
           <span>Rede Solidária Pet</span>
           <span>Ajuda comunitária para protetores, ONGs e voluntários.</span>
+          <span className="rsp-footer__author">
+            Desenvolvido por Francisco Edyvalberty Alenquer Cordeiro ·{' '}
+            <a
+              href="https://github.com/EdyAlenquer/rede-solidaria-pet"
+              target="_blank"
+              rel="noreferrer"
+            >
+              github.com/EdyAlenquer/rede-solidaria-pet
+            </a>
+          </span>
         </div>
         <nav className="rsp-footer__links" aria-label="Links institucionais">
           <Link to="/sobre">Sobre</Link>
