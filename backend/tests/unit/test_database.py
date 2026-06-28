@@ -2,12 +2,30 @@
 
 from sqlalchemy.orm import Session
 
-from app.database import Base, SessionLocal, _database_url_for_engine, engine, get_db
+from app.database import (
+    Base,
+    SessionLocal,
+    _build_engine,
+    _database_url_for_engine,
+    engine,
+    get_db,
+)
 
 
 def test_engine_usa_sqlite_em_modo_dev() -> None:
     """O engine carregado pelas Settings deve ser SQLite no ambiente padrão."""
     assert "sqlite" in str(engine.url)
+
+
+def test_engine_postgres_habilita_pool_pre_ping() -> None:
+    """Engines PostgreSQL devem usar `pool_pre_ping` para sobreviver ao
+    scale-to-zero de Postgres serverless (ex.: Neon hiberna após ociosidade):
+    sem o pre-ping, a primeira requisição após a hibernação pega uma conexão
+    morta e estoura, em vez de reconectar de forma transparente.
+    """
+    postgres_engine = _build_engine("postgresql://user:pass@host:5432/db")
+
+    assert postgres_engine.pool._pre_ping is True
 
 
 def test_database_url_for_engine_usa_psycopg3_para_postgres_render() -> None:
