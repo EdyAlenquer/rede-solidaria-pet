@@ -50,18 +50,40 @@ def _database_url_for_engine(database_url: str) -> str:
     return database_url
 
 
+def _build_engine(database_url: str) -> Engine:
+    """Cria um engine SQLAlchemy a partir de uma URL de banco.
+
+    Habilita `pool_pre_ping` em todos os backends: o pre-ping testa a conexão
+    antes de entregá-la e reconecta de forma transparente se ela estiver morta.
+    É essencial para Postgres serverless que hiberna por ociosidade (ex.: Neon
+    faz scale-to-zero após alguns minutos) — sem ele, a primeira requisição
+    após a hibernação pega uma conexão derrubada e estoura. É inócuo no SQLite.
+
+    Args:
+        database_url: URL SQLAlchemy (já normalizada ou não) do banco alvo.
+
+    Returns:
+        Engine SQLAlchemy configurado.
+    """
+    normalized_url = _database_url_for_engine(database_url)
+    connect_args = {"check_same_thread": False} if normalized_url.startswith("sqlite") else {}
+    new_engine = create_engine(
+        normalized_url,
+        connect_args=connect_args,
+        pool_pre_ping=True,
+        future=True,
+    )
+    _register_sqlite_fk_pragma(new_engine)
+    return new_engine
+
+
 def _create_engine_from_settings():
     """Cria o engine usando a `database_url` corrente das Settings.
 
     Returns:
         Engine SQLAlchemy configurado.
     """
-    settings = get_settings()
-    database_url = _database_url_for_engine(settings.database_url)
-    connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
-    new_engine = create_engine(database_url, connect_args=connect_args, future=True)
-    _register_sqlite_fk_pragma(new_engine)
-    return new_engine
+    return _build_engine(get_settings().database_url)
 
 
 engine = _create_engine_from_settings()

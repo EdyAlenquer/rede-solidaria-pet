@@ -1,9 +1,9 @@
 import { Badge, Button, Card, Input, Select } from '../components/ui'
 
 /**
- * Página de exemplos para componentes base.
+ * Galeria de exemplos dos componentes base do sistema visual.
  *
- * @returns Placeholder inicial do playground.
+ * @returns Página de exemplos dos componentes; rota disponível apenas em desenvolvimento.
  */
 export function PlaygroundPage() {
   return (

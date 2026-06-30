@@ -17,11 +17,14 @@ Side Effects:
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import Settings, get_settings
 from app.core.notifications import Notifier
+from app.core.storage import StorageBackend, get_storage
 from app.models.atendimento import AtendimentoPedido
 from app.models.doador import DoadorVoluntario
 from app.models.enums import (
@@ -36,10 +39,12 @@ from app.models.enums import (
 from app.models.pedido import PedidoAjuda
 from app.repositories.atendimento_repository import AtendimentoRepository
 from app.repositories.doador_repository import DoadorRepository
+from app.repositories.imagem_repository import ImagemRepository
 from app.repositories.pedido_repository import PedidoRepository
 from app.repositories.usuario_repository import UsuarioRepository
 from app.schemas import AtendimentoCreate, PedidoCreate, PedidoStatusUpdate, UsuarioCreate
 from app.services.atendimento_service import AtendimentoService
+from app.services.imagem_service import ImagemService
 from app.services.pedido_service import PedidoService
 from app.services.usuario_service import UsuarioService
 
@@ -47,6 +52,13 @@ logger = logging.getLogger(__name__)
 
 #: Versão do termo de consentimento registrada nos dados de exemplo.
 _CONSENTIMENTO_VERSAO = "seed-1"
+
+#: Diretório com as fotos de exemplo (domínio público / CC0) usadas como capa
+#: dos pedidos do seed. Veja `seed_assets/CREDITS.md` para a procedência/licença.
+_ASSETS_DIR = Path(__file__).resolve().parent / "seed_assets"
+
+#: Content-type das fotos de exemplo (todas JPEG).
+_IMAGEM_CONTENT_TYPE = "image/jpeg"
 
 
 class _NotifierSilencioso(Notifier):
@@ -122,6 +134,7 @@ _PEDIDOS: list[dict] = [
         "quantidade": 5,
         "contato": "11999990002",
         "status": StatusPedidoEnum.ABERTO,
+        "imagem": "pedido-1-cao.jpg",
     },
     {
         "autor_email": "ana.protetora@redesolidariapet.org",
@@ -141,6 +154,7 @@ _PEDIDOS: list[dict] = [
         "quantidade": 1,
         "contato": "21999990003",
         "status": StatusPedidoEnum.ABERTO,
+        "imagem": "pedido-2-gato.jpg",
     },
     {
         "autor_email": "joao.protetor@redesolidariapet.org",
@@ -160,6 +174,7 @@ _PEDIDOS: list[dict] = [
         "quantidade": 1,
         "contato": "11999990002",
         "status": StatusPedidoEnum.ABERTO,
+        "imagem": "pedido-3-cao.jpg",
     },
     {
         "autor_email": "ana.protetora@redesolidariapet.org",
@@ -179,6 +194,7 @@ _PEDIDOS: list[dict] = [
         "quantidade": 4,
         "contato": "21999990003",
         "status": StatusPedidoEnum.CONCLUIDO,
+        "imagem": "pedido-4-gato.jpg",
     },
     {
         "autor_email": "joao.protetor@redesolidariapet.org",
@@ -197,6 +213,7 @@ _PEDIDOS: list[dict] = [
         "quantidade": 1,
         "contato": "11999990002",
         "status": StatusPedidoEnum.CANCELADO,
+        "imagem": "pedido-5-cao.jpg",
     },
 ]
 
@@ -428,23 +445,84 @@ def _atendimento_ja_existe(session: Session, pedido_id: int, doador_email: str) 
     return session.scalars(stmt).first() is not None
 
 
-def semear(session: Session) -> dict[str, int]:
+def _semear_imagens(
+    service: ImagemService,
+    imagem_repo: ImagemRepository,
+    session: Session,
+    ids_por_titulo: dict[str, int],
+) -> int:
+    """Anexa uma foto de capa (CC0) a cada pedido de exemplo, de forma idempotente.
+
+    A foto é gravada pelo `StorageBackend` injetado — disco local em
+    desenvolvimento, object storage S3/R2 em produção — e referenciada por uma
+    linha `ImagemPedido`, exatamente como no upload via API. Sem isso, os cards
+    do feed caem no placeholder e o usuário não vê nenhuma imagem.
+
+    Idempotência: pedidos que já têm ao menos uma imagem são pulados, então
+    rodar o seed novamente (ou sobre uma base já semeada) não duplica fotos.
+
+    Args:
+        service: serviço de imagens ligado à sessão e ao storage do seed.
+        imagem_repo: repositório de imagens (checagem de idempotência).
+        session: sessão ativa do seed (para localizar o admin autorizador).
+        ids_por_titulo: mapa `titulo -> id` dos pedidos de exemplo.
+
+    Returns:
+        Quantidade de imagens efetivamente criadas nesta execução.
+
+    Side Effects:
+        Grava os arquivos no storage e insere linhas em `imagens_pedido`.
+    """
+    admin = session.scalars(
+        select(_usuario_model()).where(_usuario_model().papel == PapelUsuarioEnum.ADMIN)
+    ).first()
+    criadas = 0
+    for dados in _PEDIDOS:
+        nome_arquivo = dados.get("imagem")
+        if not nome_arquivo:
+            continue
+        pedido_id = ids_por_titulo[dados["titulo"]]
+        if imagem_repo.count_by_pedido(pedido_id) > 0:
+            continue
+        conteudo = (_ASSETS_DIR / nome_arquivo).read_bytes()
+        service.create(pedido_id, conteudo, _IMAGEM_CONTENT_TYPE, usuario=admin)
+        criadas += 1
+    return criadas
+
+
+def semear(
+    session: Session,
+    *,
+    storage: StorageBackend | None = None,
+    settings: Settings | None = None,
+) -> dict[str, int]:
     """Popula a base com dados de exemplo, de forma idempotente.
 
     Args:
         session: sessão SQLAlchemy ativa onde os dados serão criados.
+        storage: backend de armazenamento das fotos de capa. Quando omitido,
+            é resolvido por `get_storage(settings)` (disco local por padrão; em
+            produção, o object storage configurado por ambiente). Testes podem
+            injetar um storage em memória para evitar I/O.
+        settings: configurações da aplicação (limites/tipos de upload e seleção
+            de storage). Quando omitido, usa `get_settings()`.
 
     Returns:
         Resumo com a quantidade de registros efetivamente criados nesta
-        execução, nas chaves `usuarios`, `pedidos` e `atendimentos`.
+        execução, nas chaves `usuarios`, `pedidos`, `atendimentos` e `imagens`.
 
     Side Effects:
-        Persiste usuários, pedidos e atendimentos ausentes.
+        Persiste usuários, pedidos, atendimentos e fotos de capa ausentes
+        (as fotos também são gravadas no storage).
     """
+    settings = settings or get_settings()
+    storage = storage if storage is not None else get_storage(settings)
+
     usuario_repo = UsuarioRepository(session)
     pedido_repo = PedidoRepository(session)
     atendimento_repo = AtendimentoRepository(session)
     doador_repo = DoadorRepository(session)
+    imagem_repo = ImagemRepository(session)
 
     usuario_service = UsuarioService(usuario_repo)
     pedido_service = PedidoService(pedido_repo)
@@ -454,17 +532,25 @@ def semear(session: Session) -> dict[str, int]:
         doador_repo,
         notifier=_NotifierSilencioso(),
     )
+    imagem_service = ImagemService(
+        imagem_repo,
+        pedido_repo,
+        storage=storage,
+        settings=settings,
+    )
 
     ids_por_email, usuarios_criados = _semear_usuarios(usuario_service)
     ids_por_titulo, pedidos_criados = _semear_pedidos(pedido_service, session, ids_por_email)
     atendimentos_criados = _semear_atendimentos(
         atendimento_service, session, ids_por_email, ids_por_titulo
     )
+    imagens_criadas = _semear_imagens(imagem_service, imagem_repo, session, ids_por_titulo)
 
     return {
         "usuarios": usuarios_criados,
         "pedidos": pedidos_criados,
         "atendimentos": atendimentos_criados,
+        "imagens": imagens_criadas,
     }
 
 
@@ -486,10 +572,11 @@ def main() -> None:
     finally:
         session.close()
     logger.info(
-        "Seed concluído: %s usuários, %s pedidos, %s atendimentos criados.",
+        "Seed concluído: %s usuários, %s pedidos, %s atendimentos, %s imagens criados.",
         resumo["usuarios"],
         resumo["pedidos"],
         resumo["atendimentos"],
+        resumo["imagens"],
     )
 
 

@@ -46,9 +46,10 @@ endurecido), além de testes end-to-end do fluxo autenticado.
   produto/imagens, status `cancelado`, autenticação, atendimento único por doador
   e moderação).
 - Frontend reconstruído em torno de contas, fotos e mapa, com rotas protegidas.
-- Deploy endurecido: migrações movidas para `preDeployCommand` (fora do boot do
-  container), health-check de produção em `/ready` e `SECRET_KEY` gerada pelo
-  provedor (nunca versionada).
+- Deploy endurecido: migrações Alembic aplicadas no start do container (o
+  `preDeployCommand` do Render só roda em planos pagos; no free tier o
+  `alembic upgrade head` roda no boot, de forma idempotente), health-check de
+  produção em `/ready` e `SECRET_KEY` gerada pelo provedor (nunca versionada).
 - README, `docs/trabalho-final.md` e demais docs atualizados para refletir o
   estado real (contagens de teste, novas features e endpoints, roadmap honesto).
 

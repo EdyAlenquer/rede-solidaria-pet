@@ -11,9 +11,10 @@ from app.database import Base
 class ImagemPedido(Base):
     """Imagem vinculada a um pedido de ajuda.
 
-    O upload propriamente dito (storage) será implementado em milestone
-    futura; aqui ficam apenas a persistência da URL e a ordenação para
-    exibição na galeria do pedido.
+    O upload do arquivo é feito pela camada de serviço através do
+    `StorageBackend` (disco local em dev, object storage S3/R2 em produção);
+    este modelo persiste a URL pública resultante e a ordenação para exibição
+    na galeria do pedido.
 
     Atributos:
         id: chave primária.

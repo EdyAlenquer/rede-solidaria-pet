@@ -103,6 +103,7 @@ describe('PedidoDetalhePage', () => {
       <HelmetProvider>
         <MemoryRouter initialEntries={initialEntries}>
           <Routes>
+            <Route path="/pedidos" element={<div>Lista de pedidos</div>} />
             <Route path="/pedidos/:pedidoId" element={<PedidoDetalhePage />} />
             <Route path="/pedidos/:pedidoId/editar" element={<div>Tela de edição</div>} />
             <Route path="/entrar" element={<div>Tela de login</div>} />

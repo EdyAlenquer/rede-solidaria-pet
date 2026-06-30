@@ -8,7 +8,7 @@ A Rede Solidária Pet é uma aplicação web para centralizar pedidos de ajuda a
 
 - API FastAPI com contas, pedidos, fotos, doadores, atendimentos, denúncias e estatísticas.
 - Autenticação JWT (registro/login/me), autorização por autor/admin e soft-delete.
-- Upload de imagens com storage injetável (`get_storage`) e localização (cidade/estado/bairro).
+- Upload de imagens com storage injetável (`get_storage`): object storage S3-compatível (Cloudflare R2) em produção e disco local em desenvolvimento, além de localização (cidade/estado/bairro).
 - Moderação (denúncias, ocultar/reexibir, resolução por admin) e LGPD (consentimento, exportação e anonimização de conta).
 - Notificações ao protetor (backend `log` por padrão, `smtp` opcional), rate limiting e logging estruturado.
 - Persistência SQLAlchemy com migrações Alembic (`0001`–`0007`).
@@ -33,16 +33,16 @@ A Rede Solidária Pet é uma aplicação web para centralizar pedidos de ajuda a
 
 | Verificação | Resultado |
 | ----------- | --------- |
-| Backend | 339 testes pytest (unitários + integração) passando. |
-| Frontend | 87 testes Vitest passando. |
+| Backend | 364 testes pytest (unitários + integração) passando. |
+| Frontend | 107 testes Vitest passando. |
 | E2E/A11y | 28 testes Playwright/axe passando (7 testes × 4 browsers). |
 
 ## Limitações e próximos passos
 
-- O upload de fotos usa storage local (`/uploads`), **efêmero no free tier do Render**;
-  produção real exige object storage (Cloudinary/R2/S3) plugado em `get_storage`.
-- O free tier do Render não faz backup automático do PostgreSQL e hiberna (cold start);
-  produção pede plano pago e/ou `pg_dump` agendado.
+- As fotos são servidas por object storage S3-compatível (Cloudflare R2) em produção,
+  já superando o disco efêmero do free tier; um domínio/CDN próprio seria o passo seguinte.
+- O free tier (API no Render, banco no Neon) hiberna (cold start) e tem retenção de backup
+  limitada; produção em escala pede plano pago e/ou `pg_dump` agendado.
 - O fluxo E2E autenticado roda localmente; sua execução completa em CI ainda não está
   configurada.
 - Anti-abuso limita-se a rate limiting; um captcha no cadastro/criação é um próximo passo.
