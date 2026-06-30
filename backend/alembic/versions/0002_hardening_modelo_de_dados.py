@@ -169,7 +169,6 @@ def upgrade() -> None:
         batch_op.create_index(batch_op.f("ix_pedidos_urgencia"), ["urgencia"], unique=False)
 
 
-
 def downgrade() -> None:
     with op.batch_alter_table("pedidos", schema=None) as batch_op:
         batch_op.drop_index(batch_op.f("ix_pedidos_urgencia"))
@@ -208,4 +207,3 @@ def downgrade() -> None:
         batch_op.drop_index(batch_op.f("ix_atendimentos_doador_id"))
         batch_op.drop_column("deleted_at")
         batch_op.drop_column("updated_at")
-
