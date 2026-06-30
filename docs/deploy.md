@@ -5,7 +5,7 @@
 | Camada | Plataforma sugerida | Motivo |
 | ------ | ------------------- | ------ |
 | Backend | Render Web Service | Suporte simples a Dockerfile, variáveis de ambiente e health-check HTTP. |
-| Banco | Render PostgreSQL | PostgreSQL gerenciado no mesmo provedor do backend. |
+| Banco | Neon Postgres (serverless) | PostgreSQL gerenciado, free tier permanente. A API segue no Render e aponta o `DATABASE_URL` para o Neon (endpoint direto, sem `-pooler`). |
 | Frontend | Vercel | Deploy direto de Vite, HTTPS automático e configuração simples de variável `VITE_API_BASE_URL`. |
 
 ## URLs publicadas
@@ -84,7 +84,8 @@ O mesmo gate está disponível manualmente no GitHub Actions em `Production Smok
 
 ## Manifests versionados
 
-- `render.yaml`: declara o Web Service Docker do backend e o PostgreSQL gerenciado.
+- `render.yaml`: declara o Web Service Docker do backend. O `DATABASE_URL` é definido como
+  segredo no dashboard (aponta para o Neon), e não por um banco gerenciado pelo Render.
 - `frontend/vercel.json`: declara build Vite, diretório de saída e rewrite SPA do frontend.
 
 ## Armazenamento de fotos em produção
@@ -229,9 +230,11 @@ ser revertidas na ordem correta.
 
 ## Backup e restore do PostgreSQL
 
-> **Limitação do free tier do Render:** o PostgreSQL free **não tem backups automáticos**
-> e é **removido após ~90 dias** se inativo. Para produção real, suba para um plano pago
-> (que inclui PITR/backups diários) ou exporte backups regularmente por conta própria.
+> **Limitação do free tier:** o banco usado em produção é o **Neon Postgres** (free tier
+> permanente, mas com retenção de backup/PITR limitada e *scale-to-zero* após inatividade).
+> Para produção real, suba para um plano pago (PITR/backups estendidos) ou exporte backups
+> regularmente por conta própria. (O setup original usava o PostgreSQL free do Render, que
+> expirava após ~30 dias — por isso a migração para o Neon.)
 
 **Backup lógico (pg_dump):**
 
@@ -261,33 +264,24 @@ Boas práticas:
 
 ## Object storage para fotos em produção
 
-O upload de imagens usa hoje o `LocalStorageBackend` (`backend/app/core/storage.py`),
-que grava em `UPLOAD_DIR` (`uploads/`) e serve sob `PUBLIC_UPLOAD_PATH` (`/uploads`) via
-`StaticFiles`.
+O object storage **já está implementado** e em uso em produção. O backend grava as
+imagens através da abstração `StorageBackend` (`backend/app/core/storage.py`), e
+`get_storage(settings)` seleciona o backend por `STORAGE_BACKEND`:
 
-> **O disco do Render free é efêmero:** qualquer arquivo gravado em `/uploads` é **perdido
-> a cada deploy e a cada cold start/restart**. Em produção, as fotos **precisam** ir para
-> um object storage externo (Cloudinary, Cloudflare R2 ou S3).
+- `local` (default): `LocalStorageBackend` grava em `UPLOAD_DIR` e serve sob
+  `PUBLIC_UPLOAD_PATH` via `StaticFiles`. **Efêmero no Render free** — bom só para
+  desenvolvimento.
+- `s3`: `S3StorageBackend` grava em object storage S3-compatível (Cloudflare R2, AWS S3,
+  Supabase Storage, MinIO), durável e compartilhado entre instâncias.
 
-A costura já está pronta: `get_storage(settings)` é o **ponto único de decisão** do
-backend de storage, e rotas/serviços dependem apenas da interface `StorageBackend`
-(`salvar(conteudo, nome_arquivo) -> url` e `remover(url)`). Para plugar um backend de
-nuvem:
+A produção usa **Cloudflare R2** (`STORAGE_BACKEND=s3`). O passo a passo completo de
+configuração — criar bucket, habilitar acesso público, gerar o token S3 e definir as
+variáveis `S3_*` — está na seção [**Armazenamento de fotos em produção**](#armazenamento-de-fotos-em-produção)
+acima. Não é preciso escrever código: basta configurar as variáveis de ambiente.
 
-1. Implemente uma subclasse de `StorageBackend` (ex.: `CloudinaryStorageBackend` ou
-   `R2StorageBackend`) em `backend/app/core/storage.py`:
-   - `salvar`: faz upload do conteúdo binário e devolve a **URL pública absoluta** do
-     objeto.
-   - `remover`: apaga o objeto pela URL, de forma idempotente.
-2. Troque o corpo de `get_storage` para selecionar o backend conforme as `Settings`
-   (ex.: novo campo `storage_backend: "local" | "cloudinary" | "r2"` + credenciais como
-   `CLOUDINARY_URL` ou `R2_*`/`S3_*`). Adicione as credenciais como variáveis de ambiente
-   (e ao `render.yaml` com `sync: false`).
-3. Quando o storage devolver URLs absolutas, o `StaticFiles` local e o
-   `PUBLIC_UPLOAD_PATH` deixam de ser necessários em produção; podem ser mantidos só para
-   desenvolvimento.
-4. Nenhuma mudança em rotas, serviços ou no schema `ImagemRead` é necessária — a URL
-   continua sendo o identificador estável da imagem.
+> A única opção ainda **não** implementada é o Cloudinary (SaaS de mídia, não
+> S3-compatível); exigiria uma subclasse `StorageBackend` própria. Para apenas armazenar
+> de forma durável, o R2 já suportado é mais simples.
 
 ## Cold start do free tier
 

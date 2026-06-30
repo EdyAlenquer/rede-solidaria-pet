@@ -1,8 +1,8 @@
 # Rede Solidária Pet
 
-> ⚠️ **Trabalho em andamento.** Este repositório contém um projeto acadêmico em desenvolvimento. As partes prontas e as pendentes estão listadas em [Status do projeto](#status-do-projeto) abaixo.
-
 Plataforma web simples para centralizar pedidos de ajuda e doações para animais em situação de rua, conectando protetores independentes, ONGs e doadores voluntários da comunidade local.
+
+Projeto acadêmico **concluído** e publicado: backend em produção no Render, frontend na Vercel. As 8 fases do plano estão entregues — veja o [Status do projeto](#status-do-projeto).
 
 ## Objetivo
 
@@ -22,7 +22,7 @@ Comunidade local, protetores independentes e ONGs de proteção animal.
 
 ## Status do projeto
 
-O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md). Estado atual:
+O desenvolvimento foi organizado em 8 fases — veja o [PRD completo](PRD.md). **Todas concluídas:**
 
 | Fase | Nome                                       | Status        |
 | ---- | ------------------------------------------ | ------------- |
@@ -53,11 +53,11 @@ O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md).
 - Hardening: rate limiting (slowapi), logging estruturado, CORS configurável e cache HTTP em respostas públicas.
 - Tratamento de erros padronizado (RFC 7807 — `application/problem+json`).
 - Liveness (`/health`) e readiness (`/ready`, com `SELECT 1`).
-- 339 testes (unitários + integração) passando.
+- 364 testes (unitários + integração) passando.
 
 **Frontend (`frontend/`)**
 - SPA Vite + React + TypeScript com roteamento principal e rotas protegidas.
-- Layout base responsivo inspirado no protótipo `layout.zip`.
+- Layout base responsivo inspirado em um protótipo visual de referência.
 - **Contas:** telas de cadastro e login, sessão autenticada e logout.
 - Telas reais de home, lista, criação, edição e detalhe de pedidos.
 - **Fotos:** envio e galeria de imagens nos pedidos.
@@ -69,30 +69,29 @@ O desenvolvimento está organizado em 8 fases — veja o [PRD completo](PRD.md).
 - Estados de carregamento, erro, vazio e validação client-side em português.
 - Testes unitários (Vitest + Testing Library), E2E e acessibilidade (Playwright + axe) cobrindo o fluxo autenticado e as rotas públicas.
 - Lint (ESLint) e formatação (Prettier) configurados.
-- 87 testes (Vitest) passando.
+- 107 testes (Vitest) passando.
 
 **Infraestrutura**
 - Workflows de CI no GitHub Actions para backend, frontend, smoke de produção e varredura de segredos.
 - `Makefile` com atalhos de desenvolvimento.
-- Manifests versionados: `render.yaml` (backend + PostgreSQL), `frontend/vercel.json`, `compose.yml`.
-- Migrações em pré-deploy (`preDeployCommand`) e health-check de readiness.
+- Manifests versionados: `render.yaml` (backend + banco gerenciado), `frontend/vercel.json`, `compose.yml`.
+- Migrações Alembic aplicadas no start do container e health-check de readiness (`/ready`).
+- **Object storage** S3-compatível (Cloudflare R2) para as fotos em produção; disco local em desenvolvimento.
 - Backend publicado em https://rede-solidaria-pet-api.onrender.com.
 - Frontend publicado em https://rede-solidaria-pet.vercel.app.
 
-### Roadmap de próximos passos
+### Trabalho futuro (evolução para produção em escala)
 
-As fases do PRD acadêmico estão concluídas, mas para operação de produção real os
-seguintes itens continuam em aberto:
+O escopo acadêmico está **concluído e publicado**. Os itens abaixo ficam registrados
+como evolução natural caso o projeto siga para uma operação de produção em escala:
 
-- **Object storage para fotos:** o `/uploads` local é efêmero no Render (some a cada
-  deploy/cold start). Plugar Cloudinary/R2/S3 em `get_storage` — costura já preparada.
-  Veja [`docs/deploy.md`](docs/deploy.md#object-storage-para-fotos-em-produção).
-- **Tier pago + backups:** o free tier do Render não faz backup automático do PostgreSQL
-  e hiberna (cold start). Subir para plano pago e/ou agendar `pg_dump` próprio.
+- **Tier pago + backups:** o free tier hiberna (cold start) e tem retenção de backup
+  limitada. Subir para plano pago e/ou agendar `pg_dump` próprio.
 - **Captcha / anti-abuso:** complementar o rate limiting com captcha no cadastro e na
   criação de pedidos.
-- **E2E completo em CI:** rodar o fluxo Playwright autenticado nos 4 browsers no pipeline
-  (hoje os testes existem e rodam localmente).
+- **Cobertura explícita do Microsoft Edge:** o fluxo Playwright autenticado já roda em CI
+  em Chromium, Firefox e WebKit; falta apenas validar o Edge explicitamente (hoje coberto
+  pelo motor Chromium).
 - **Notificações por e-mail em produção:** configurar `NOTIFIER_BACKEND=smtp` com um
   provedor real (hoje o default `log` apenas registra).
 
@@ -104,8 +103,9 @@ seguintes itens continuam em aberto:
 | --------------- | ------------------------------------------- |
 | Backend         | Python 3.12, FastAPI, SQLAlchemy 2.0, Alembic |
 | Banco (dev)     | SQLite                                      |
-| Banco (prod)    | PostgreSQL (Render)                         |
-| Auth            | JWT (HS256), bcrypt                          |
+| Banco (prod)    | PostgreSQL (Neon)                           |
+| Storage (prod)  | Object storage S3-compatível (Cloudflare R2)|
+| Auth            | JWT (HS256), Argon2                          |
 | Frontend        | React 18, Vite, TypeScript                  |
 | Testes          | pytest, Vitest, Testing Library, Playwright + axe |
 | Qualidade       | ruff, black, ESLint, Prettier, gitleaks     |
@@ -235,11 +235,12 @@ rede-solidaria-pet/
 ├─ docs/                        # diagramas, requisitos, ferramentas, auditoria
 │  ├─ diagramas/
 │  ├─ requisitos/
-│  ├─ superpowers/plans/        # planos de implementação por fase
+│  ├─ deploy.md
+│  ├─ trabalho-final.md
 │  ├─ ferramentas-utilizadas.md
 │  └─ auditoria-de-configuracao.md
-├─ backend/                     # API FastAPI (em uso)
-└─ frontend/                    # SPA Vite + React (scaffold)
+├─ backend/                     # API FastAPI
+└─ frontend/                    # SPA Vite + React
 ```
 
 ---

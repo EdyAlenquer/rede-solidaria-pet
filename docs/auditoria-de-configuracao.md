@@ -20,6 +20,11 @@
 
 ## Evidências de Qualidade — Fase 7
 
+> Snapshot da Fase 7 (v0.1.0, 27/05/2026). As contagens de teste evoluíram com as
+> features posteriores (contas, fotos, mapa, moderação, LGPD); os números atuais
+> (**364** no backend e **107** no frontend) estão no `README.md` e em
+> `docs/trabalho-final.md`.
+
 | Verificação                | Comando                                  | Resultado em 27/05/2026                                      |
 | -------------------------- | ---------------------------------------- | ------------------------------------------------------------- |
 | Testes unitários frontend  | `npm test -- --run`                      | 23 testes passando                                            |
@@ -29,5 +34,5 @@
 | Deploy versionável         | Revisão de arquivos                     | `backend/Dockerfile`, `compose.yml`, `docs/deploy.md` e `docs/trabalho-final.md` versionados |
 | Docker backend             | `docker build -t rede-solidaria-pet-backend:test backend` | Imagem construída com sucesso |
 | Manifests de deploy        | `uv run --extra dev pytest tests/integration/test_deploy_manifests.py -q` | `render.yaml` e `frontend/vercel.json` validados |
-| Smoke produção             | `FRONTEND_PUBLIC_URL=https://frontend-edyalenquers-projects.vercel.app BACKEND_PUBLIC_URL=https://rede-solidaria-pet-api.onrender.com node scripts/smoke-production.mjs` | `Smoke OK` em 27/05/2026 |
-| CORS produção              | `curl -i -X OPTIONS https://rede-solidaria-pet-api.onrender.com/api/v1/pedidos -H 'Origin: https://frontend-edyalenquers-projects.vercel.app' -H 'Access-Control-Request-Method: POST'` | HTTP 200 com `access-control-allow-origin` correto |
+| Smoke produção             | `FRONTEND_PUBLIC_URL=https://rede-solidaria-pet.vercel.app BACKEND_PUBLIC_URL=https://rede-solidaria-pet-api.onrender.com node scripts/smoke-production.mjs` | `Smoke OK` em 27/05/2026 |
+| CORS produção              | `curl -i -X OPTIONS https://rede-solidaria-pet-api.onrender.com/api/v1/pedidos -H 'Origin: https://rede-solidaria-pet.vercel.app' -H 'Access-Control-Request-Method: POST'` | HTTP 200 com `access-control-allow-origin` correto |
