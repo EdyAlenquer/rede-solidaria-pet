@@ -16,6 +16,10 @@ vi.mock('./services/api/atendimentos', () => ({
   listarAtendimentos: vi.fn(() => new Promise(() => undefined)),
 }))
 
+vi.mock('./services/api/estatisticas', () => ({
+  obterEstatisticas: vi.fn(() => new Promise(() => undefined)),
+}))
+
 vi.mock('./services/api/auth', () => ({
   login: vi.fn(),
   me: vi.fn(),
