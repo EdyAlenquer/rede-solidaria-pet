@@ -10,12 +10,16 @@ import yaml
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def test_render_yaml_define_backend_e_postgres() -> None:
-    """`render.yaml` declara backend Docker e PostgreSQL gerenciado."""
+def test_render_yaml_define_backend_e_db_externo() -> None:
+    """`render.yaml` declara o backend Docker e o `DATABASE_URL` como segredo externo.
+
+    O banco de produção é o Neon (serverless), não um Postgres gerenciado pelo
+    Render: o manifest não traz bloco `databases:` e o `DATABASE_URL` é um segredo
+    (`sync: false`) definido no dashboard, apontando para o Neon.
+    """
     manifest = yaml.safe_load((ROOT / "render.yaml").read_text(encoding="utf-8"))
 
     service = manifest["services"][0]
-    database = manifest["databases"][0]
 
     assert service["type"] == "web"
     assert service["plan"] == "free"
@@ -23,9 +27,14 @@ def test_render_yaml_define_backend_e_postgres() -> None:
     assert service["dockerfilePath"] == "./backend/Dockerfile"
     assert "dockerCommand" not in service
     assert service["healthCheckPath"] == "/ready"
-    assert database["plan"] == "free"
-    assert database["databaseName"] == "rede_solidaria_pet"
-    assert any(env["key"] == "DATABASE_URL" for env in service["envVars"])
+
+    # Banco externo (Neon): sem `databases:` e DATABASE_URL como segredo, não fromDatabase.
+    assert "databases" not in manifest
+    database_url = next(env for env in service["envVars"] if env["key"] == "DATABASE_URL")
+    assert database_url.get("sync") is False
+    assert "value" not in database_url
+    assert "fromDatabase" not in database_url
+
     assert {
         "key": "CORS_ORIGINS",
         "value": "https://rede-solidaria-pet.vercel.app",

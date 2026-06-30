@@ -11,10 +11,6 @@ on:
         description: URL pública HTTPS do backend
         required: true
         type: string
-  schedule:
-    # A cada 30 minutos: monitora a saúde das URLs públicas. Em falha, o GitHub
-    # notifica o dono do repositório por padrão.
-    - cron: '*/30 * * * *'
 
 jobs:
   smoke:
